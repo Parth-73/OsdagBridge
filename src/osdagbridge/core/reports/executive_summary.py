@@ -74,9 +74,13 @@ def executive_summary(input_dict, output_dict, fig_paths) -> str:
     assessed_girders = [key for key, value in per_girder.items() if not key.startswith("EB") and value.get("checks")]
     if len(assessed_girders) != expected_girders and not outcomes["Plate girders"].startswith("Fail"):
         outcomes["Plate girders"] = "Not assessed"
+    missing_actions = output_dict.get("report.unavailable_actions")
+    coverage = ("Not established" if missing_actions is None else
+                "Incomplete: " + ", ".join(missing_actions) if missing_actions else
+                "Available for requested combinations")
     failed = [name for name, status in outcomes.items() if status.startswith("Fail")]
     overall_design_status = ("Fail (" + ", ".join(failed) + ")" if failed else
-                             "Incomplete" if "Not assessed" in outcomes.values() else "Pass")
+                             "Incomplete" if "Not assessed" in outcomes.values() or missing_actions is None or missing_actions else "Pass")
     available = [(ratio, name) for name, ratio in ratios.items() if ratio is not None]
     overall_utilization_ratio = ""
     if available:
@@ -138,6 +142,8 @@ This section provides a concise summary of the bridge design, key inputs, govern
 \textbf{Deck Thickness} & """ + (_render_value(input_dict, KEY_TS_DECK_THICKNESS, " mm")) + r""" \\
 \hline
 \textbf{Overall Design Status} & """ + (_tex(overall_design_status)) + r""" \\
+\hline
+\textbf{Analysis load coverage} & """ + _tex(coverage) + r""" \\
 \hline
 \textbf{Governing Check} & """ + gov + r""" \\
 \hline

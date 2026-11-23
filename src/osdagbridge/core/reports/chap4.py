@@ -107,6 +107,10 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
                     f"Icomp={values['deflection_composite_I_mm4']:.3f} mm4, "
                     f"r=max(Icomp/Isteel,1)={ratio:.6f}; design Dy=raw Dy/r."
                 )
+    for label, values in bridge.output_dict.get("report.grillage_stiffness", {}).items():
+        trace_lines.append(f"{label} analysed steel E={values['E_Pa']:.4g} Pa, "
+                           f"Iz={values['Iz_m4']:.8g} m4. Composite inertia is not assigned to these longitudinal elements.")
+    trace_lines.append("The scalar adjustment uses final design-section properties; it is an approximate post-processing assumption, not a composite-model reanalysis.")
     basis_note += " " + " ".join(trace_lines)
     thermal_note = ""
     if not any(" TL" in str(lc) for lc in all_lcs):
@@ -116,15 +120,18 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
         if ":" in lc:
             expression_groups.setdefault(lc.split(":", 1)[1].strip(), []).append(lc.split(":", 1)[0])
     matching = [", ".join(labels) for labels in expression_groups.values() if len(labels) > 1]
+    unavailable = bridge.output_dict.get("report.unavailable_actions")
     combination_note = (
         "Combination labels list only the actions actually added to the solver. "
         "Unavailable actions are omitted, so identical applied expressions can legitimately give identical responses. "
         + ("Matching applied expressions occur for " + "; ".join(matching) + "." if matching else "")
     )
+    if unavailable:
+        combination_note += " Requested actions unavailable: " + ", ".join(unavailable) + ". Coverage is incomplete; no complete compliance claim is made."
     return r"""
 \chapter{Analysis Results}
 
-A grillage model was used for structural analysis. The deck is idealized as a grid of elastic beam elements --- longitudinal members represent the composite steel girders with effective slab, and transverse members represent the slab or cross frames. This section summarizes the critical output from that analysis.
+A grillage model was used for structural analysis. The deck is idealized as a grid of elastic beam elements --- longitudinal members use the saved steel girder properties, and transverse members represent the deck grid. The composite deflection adjustment is applied during design post-processing. This section summarizes the critical output from that analysis.
 
 \noindent """ + _tex(thermal_note + " " + combination_note) + r"""
 \vspace{1em}
@@ -204,7 +211,7 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \end{longtable}
 
 \vspace{1em}
-\noindent """ + _tex(basis_note) + r"""
+\noindent """ + _tex(basis_note).replace("mm4", r"mm$^4$").replace("m4", r"m$^4$") + r"""
 """ + _fig_embed(fig_paths.get('bm_envelope'), 'Bending Moment Envelope (Envelope ULS): Max/min BM along span. X-axis: distance from left support (m). Y-axis: Bending Moment (kN-m).', width=r'0.75\textwidth') + r"""
 """ + _fig_embed(fig_paths.get('sf_envelope'), 'Shear Force Envelope (Envelope ULS): Max/min SF along span. X-axis: distance from left support (m). Y-axis: Shear Force (kN).', width=r'0.75\textwidth') + r"""
 """ + _fig_embed(fig_paths.get('defl_ll'), 'Vertical Deflection D$_y$ (1.0 LL): Maximum deflection along span. Load Case: 1.0 LL, Combination: $D_y$. Nodes shown. Isometric view.', width=r'0.75\textwidth') + r"""

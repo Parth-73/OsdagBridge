@@ -1859,6 +1859,8 @@ class OspGrillage:
         # all lines are ordered in path counter clockwise - sorted hereafter via sort_vertices
         # get nodes in grid that are left (check inside variable greater than 0)
         for grid, int_point_list in merged.items():  # [x y z]
+            if grid in bound_grid:
+                continue  # This complete cell was already integrated above.
             grid_nodes = self.Mesh_obj.grid_number_dict[grid]  # read grid nodes
             # get two grid nodes bounded by patch
             node_in_grid = [

@@ -953,7 +953,12 @@ def get_patch_centroid(point_list):
         mx += point.x * point.p
         mz += point.z * point.p
         my += point.y * point.p
-    sum_m = sum(m_total) if sum(m_total) > 0 else 1
+    sum_m = sum(m_total)
+    if sum_m == 0:
+        if not point_list:
+            return 0, 0, 0
+        return tuple(sum(getattr(point, axis) for point in point_list) / len(point_list)
+                     for axis in ("x", "y", "z"))
     xc = mx / sum_m
     zc = mz / sum_m
     yc = my / sum_m

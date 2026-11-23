@@ -642,6 +642,7 @@ class PlateGirderBridge:
         self.create_uls_combinations()
         
         self.create_sls_combinations()
+        self.output_dict["report.unavailable_actions"] = sorted(self.grillage_model.unavailable_actions)
 
     def _stage_cad_generation(self):
         # Validate that the CAD parameter DTO can be assembled, but do NOT build
@@ -1122,6 +1123,11 @@ class PlateGirderBridge:
         self.grillage_model.create_material(self.material_props)
         self.grillage_model.assign_members()
         self.grillage_model.create_model()
+        self.output_dict["report.grillage_stiffness"] = {
+            f"G{index + 1}": {"E_Pa": self.material_props.steel_prop.E,
+                             "Iz_m4": section.Iz, "A_m2": section.A}
+            for index, section in enumerate(girder_sections)
+        }
 
     def _lookup_material(self, material_name: str, property: str) -> float:
         """

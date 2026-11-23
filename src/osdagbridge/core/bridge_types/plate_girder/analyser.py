@@ -2348,10 +2348,11 @@ class BridgeGrillageModel:
                 target_lc.add_load(entry["load"], load_factor=float(factor) * float(entry.get("factor", 1)))
             return len(src_lc.load_groups)
 
+        self.unavailable_actions = set()
         counters: dict = {}
         created: list = []
 
-        def _register(prefix, perm_factors, var_factors, seismic_factor=None, label="", key=""):
+        def _register(prefix, perm_factors, var_factors, seismic_factor=None, label="", key="", unavailable_event=None):
             # Skip combinations the user has de-selected. included_keys is None
             # → generate everything (back-compat); an empty/unknown key always
             # passes so a mapping miss can never silently drop a combination.
@@ -2362,6 +2363,8 @@ class BridgeGrillageModel:
             # a load is included only when its factor is non-zero and its
             # sub-case exists). Collect both the loads to copy and the factored
             # terms used to spell out the combination in its name.
+            if unavailable_event:
+                self.unavailable_actions.add(unavailable_event)
             seq = counters.get(prefix, 0) + 1
             terms   = []   # display terms, e.g. "1.35DL"
             to_copy = []   # (src_lc, factor) actually added to the combo
@@ -2369,6 +2372,8 @@ class BridgeGrillageModel:
             for key, fac in perm_factors.items():
                 src = _lc(key)
                 if src is None or fac is None or fac == 0:
+                    if src is None and fac not in (None, 0):
+                        self.unavailable_actions.add(key)
                     continue
                 terms.append(f"{fac}{LOAD_ABBR[key]}")
                 to_copy.append((src, fac))
@@ -2378,6 +2383,7 @@ class BridgeGrillageModel:
                     continue
                 src = _lc(key)
                 if src is None:
+                    self.unavailable_actions.add(key)
                     warnings.warn(
                         f"{prefix}_{seq}: '{key}' load case not available — "
                         "create it before calling create_uls_combinations()."
@@ -2389,6 +2395,7 @@ class BridgeGrillageModel:
             if seismic_factor is not None and seismic_factor != 0:
                 src = _lc('seismic')
                 if src is None:
+                    self.unavailable_actions.add("seismic")
                     warnings.warn(f"{prefix}_{seq}: seismic load case not available.")
                 else:
                     terms.append(f"{seismic_factor}{LOAD_ABBR['seismic']}")
@@ -2443,6 +2450,7 @@ class BridgeGrillageModel:
                     continue
                 _register('ACCIDENTAL', perm, var,
                           label=f"DL={dl_f}  {acc}(no lc)  {leading} leading",
+                          unavailable_event=acc,
                           key=IRC6_2017.ULS_COMBINATION_KEYS.get(('accidental', leading, acc, 'adding'), ""))
 
         # ── SEISMIC (4 combos: 2 directions × 2 conditions) ──────────────────
@@ -2543,6 +2551,7 @@ class BridgeGrillageModel:
                 target_lc.add_load(entry["load"], load_factor=float(factor) * float(entry.get("factor", 1)))
             return len(src_lc.load_groups)
 
+        self.unavailable_actions = getattr(self, "unavailable_actions", set())
         counters: dict = {}
         created: list = []
 
@@ -2564,6 +2573,8 @@ class BridgeGrillageModel:
             for key, fac in [('dead_load', dl_f), ('surfacing', surf_f)]:
                 src = _lc(key)
                 if src is None or fac is None or fac == 0:
+                    if src is None and fac not in (None, 0):
+                        self.unavailable_actions.add(key)
                     continue
                 terms.append(f"{fac}{LOAD_ABBR[key]}")
                 to_copy.append((src, fac))
@@ -2573,6 +2584,7 @@ class BridgeGrillageModel:
                     continue
                 src = _lc(key)
                 if src is None:
+                    self.unavailable_actions.add(key)
                     warnings.warn(
                         f"{prefix}_{seq}: '{key}' load case not available — "
                         "create it before calling create_sls_combinations()."

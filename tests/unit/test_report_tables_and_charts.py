@@ -159,3 +159,19 @@ def test_shear_table_preserves_buckling_failure_when_check_ids_repeat():
     tex = ch5_design_checks([], ReportDataBridge(outputs, {keys.KEY_TS_NO_OF_GIRDERS: 1}, None))
     assert "1.10" in tex
     assert "FAIL" in tex
+
+
+def test_missing_requested_actions_prevent_complete_status():
+    from osdagbridge.core.reports.executive_summary import executive_summary
+    outputs = {"report.unavailable_actions": ["thermal_load", "vehicle_collision"],
+               "design_results": {"per_girder": {"G1": {"checks": [
+                   {"name": "Flexure", "dcr": .2, "status": "PASS"}
+               ]}}},
+               "deck_design_results": {"ur_flexure": .2},
+               "crossbracing_design_results": {"G1-G2": {"diagonal": {
+                   "compression": {"Member.efficiency": .2}}}},
+               "end_diaphragm_design_results": {"G1-G2": {"diagonal": {
+                   "compression": {"Member.efficiency": .2}}}}}
+    tex = executive_summary({keys.KEY_TS_NO_OF_GIRDERS: 1}, outputs, {})
+    assert "Incomplete" in tex
+    assert r"thermal\_\allowbreak{}load" in tex

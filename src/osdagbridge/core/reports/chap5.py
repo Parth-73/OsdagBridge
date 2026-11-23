@@ -1061,7 +1061,7 @@ def ch5_design_checks(checks_data, bridge, chart_dir=None) -> str:
         _row522(r"Girder --- LTB (constr.)",      _dcr_row({5})),
         _row522(r"Girder --- Deflection",         _dcr_row({13, 14}, fallback_unit="mm")),
         _row522(r"Girder --- Stress",             _dcr_row({11}, fallback_unit="MPa")),
-        _row522(r"Girder --- Fatigue",            _dcr_row({8, 9}, fallback_unit="MPa")),
+        _row522(r"Girder --- Fatigue",            ("Signed frequent-SLS force envelope",) + _dcr_row({8, 9}, fallback_unit="MPa")[1:]),
         _row522(r"Transverse Shear (slab)", ("Bridge transverse shear", _knm(_ts_vl), _knm(_ts_vrd), _ts_ur_str + " " + _ts_status)),
         _row522(r"Crack Width (slab)",            _crack_cells),
         _row522(r"Deck --- Flexure (sagging)",    _deck_row(KEY_DD_M_ULS_SAG, KEY_DD_MU_BOT, "kN-m/m")),
@@ -1173,7 +1173,7 @@ This section presents all structural design checks performed by OsdagBridge. For
 \reporthead{\textbf{} & \textbf{Stress Range, $\Delta\sigma$ (MPa)} & \textbf{Fatigue Limit, $f_{fd}$ (MPa)} & \textbf{Utilization Ratio} & \textbf{Status}}
 """ + t512_content + r"""
 \end{longtable}
-\noindent\textit{Note: IRC 22 Cl. 605 --- governing of normal and shear fatigue (worst by DCR). Capacity reduction factor $\mu_r$ applied where plate thickness > 25 mm.}
+\noindent\textit{Note: IRC 22 Cl. 605 --- governing of normal and shear fatigue (worst by DCR). Range is formed from signed local member-end forces across frequent SLS cases; the physical stress-range convention requires independent engineering confirmation. Capacity reduction factor $\mu_r$ applied where plate thickness > 25 mm.}
 
 \vspace{1em}
 \vspace{0.4em}

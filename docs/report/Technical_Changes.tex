@@ -7,136 +7,120 @@
 \usepackage{geometry}%
 \geometry{margin=22mm}%
 %
-\title{OsdagBridge Final Discrepancy Audit}\author{Implementation and verification record}\date{23 November 2026}%
+\title{OsdagBridge Final Verification}\author{Verified calculations, corrections and limitations}\date{23 November 2026}%
 %
 \begin{document}%
 \normalsize%
 \maketitle%
-\section*{Scope and preserved baseline}%
-\label{sec:Scopeandpreservedbaseline}%
-This audit continues the dev branch from commit 5332011. Origin is Parth{-}73/od and the fork remote is Parth{-}73/OsdagBridge. Existing reporting, CAD capture, quantity calculations and tests were retained. Report\_Before.pdf remains byte{-}identical to the version committed before this audit.%
+\section*{Verification scope and disposition}%
+\label{sec:Verificationscopeanddisposition}%
+Verification started on dev at commit 17993b52f780a5d4e9dc1082e5f3bb53a303deea. The existing 22 tests and 53{-}page report were retained as the starting point. Confirmed load{-}distribution defects and inaccurate analysis{-}coverage descriptions required additional corrections. The final report has 54 physical pages.%
 
 
 %
-Analysis proceeds through PlateGirderBridge, BridgeGrillageModel, OSPGrillage LoadCase registration, solver command distribution, OpenSees, xarray results, result caches, ReportPayload and chapter templates. The tests exercise the factor path and numerical result mapping independently from PDF generation.%
+Changes preserve the existing engineering formulas and all reported failures. Passing automated tests establish the tested numerical and reporting behavior. Engineering limitations identified below remain explicit.%
 
 %
-\section*{1. Load combinations and numerical independence}%
-\label{sec:1.Loadcombinationsandnumericalindependence}%
-Root cause: LoadCase.add\_load stored each load group's factor, and the combination builder populated it, but OSPGrillage.\_distribute\_load\_types\_to\_model ignored it. Differently labelled combinations with the same available load objects therefore generated identical solver loads.%
-
-
-%
-The distributor now scales the nodal force and moment commands produced by each group exactly once. This covers point, line, patch, nodal and compound loads through a common command path. Factors must be finite. Stored source loads are not mutated. Combination{-}copy helpers also preserve an existing source group's coefficient when applying a new coefficient.%
+\section*{1. Actual grillage stiffness and the deflection adjustment}%
+\label{sec:1.Actualgrillagestiffnessandthedeflectionadjustment}%
+The generated OpenSees elasticBeamColumn commands for physical girders G1, G2 and G3 assign A = 0.02388 m2, E = 2.000e11 Pa, G = 7.692e10 Pa and Iz = 0.008328 m4. The saved input DTO before command formatting carries Iz = 0.0083277576 m4. Command values were inspected after building the actual 25 m Ujjain bridge.%
 
 
 %
-A regression creates a real three{-}dimensional elastic cantilever in OpenSees and verifies that coefficients 1.0 and 1.35 produce displacement responses in the ratio 1.35. Other tests verify nested coefficients, negative compound factors and independent xarray extraction for two distinct named cases.%
+These longitudinal elements carry steel{-}section stiffness. The final transformed composite inertia 0.022207031145 m4 is not assigned to them. There is therefore no direct second application of the same composite longitudinal inertia. Transverse members are the existing deck{-}grid proxies and are also paired with the steel material.%
 
 
 %
-The regenerated BASIC\_1 moment is {-}2506.442 kNm, BASIC\_2 is {-}2156.616 kNm and BASIC\_3 is {-}2201.762 kNm. SEISMIC\_1 and SEISMIC\_2 are 1321.977 and 1385.102 kNm respectively. Values were obtained from the solver dataset and retain their signed convention.%
+The designer uses final design{-}section Isteel = 8770693002.666668 mm4 and Icomp = 22207031145.0 mm4, giving r = 2.5319585508520372. It divides the raw displacement by this ratio. The model uses the earlier input{-}stage steel inertia, which differs from the final design inertia. The scalar adjustment is consequently a post{-}processing approximation rather than an exact composite{-}grillage reanalysis.%
 
 
 %
-ACCIDENTAL\_1 through ACCIDENTAL\_3 still have the same applied expression, 1.0DL + 1.0DW + 0.75LL, and the same moment {-}1552.318 kNm. Collision, barge and floating{-}body actions are unavailable in this run. Chapter 4 documents this reason. Chapter 3 now identifies its generic IRC 6 definitions as a catalogue, distinct from the actual applied expressions printed in Chapter 4.%
-
-%
-\section*{2. Traceable deflection calculations}%
-\label{sec:2.Traceabledeflectioncalculations}%
-The existing procedure uses r = max(Icomp / Isteel, 1) and adjusted displacement = raw displacement / r. The source computes transformed short{-}term composite properties with effective width min(L/4, girder spacing), the concrete modular{-}ratio helper with Kc = 0.5, the deck thickness, haunch and steel section geometry.%
+The governing live check is G2 under Case2 1xClass70R. Raw Dy is about 35.360 mm and adjusted Dy is about 13.966 mm, recorded as 13.97 mm against 31.25 mm. The plotted 1.0 LL case is a separate case selected by bending moment and has a physical{-}girder raw maximum around 32.146 mm. Dynamic allowance is already included by the vehicle generator.%
 
 
 %
-In this case Isteel = 8770693002.666668 mm4 and Icomp = 22207031145.0 mm4, giving r = 2.5319585508520372. Those exact properties and ratio are now persisted in every per{-}load{-}case design result and printed for the governing deflection checks.%
+After the patch integration correction, the governing adjusted total displacement is recorded as 24.54 mm against 41.67 mm. The report prints the actual per{-}case inertia and displacement trace. Existing PASS statuses for these adjusted checks are retained. Coupled{-}grid, staged{-}construction and creep behavior are not validated by this scalar arithmetic, and the report no longer claims long{-}term composite stiffness was used for this adjustment.%
+
+%
+\section*{2. Independent load{-}factor and bridge benchmarks}%
+\label{sec:2.Independentload{-}factorandbridgebenchmarks}%
+Every relevant distribution path was exercised with independently known resultants: a 10 kN point load, a 10 kN/m line over 25 m, a 1 kN/m2 patch over 25 by 6 m, and a compound point{-}plus{-}patch load. Factors {-}1.0, 0.5 and 1.5 produce the corresponding signed integrated forces. Nodal force and moment scaling, nested group coefficients and outer load{-}case coefficients are also tested.%
 
 
 %
-The governing adjusted live check is G2 under Case2 1xClass70R. Its raw nodal magnitude is 35.360 mm and its adjusted value is approximately 13.966 mm, displayed by the recorded design check as 13.970 mm. The limit is 31.250 mm, giving recorded UR 0.447 and PASS.%
+A separate simply supported 25 m, three{-}girder, zero{-}skew bridge uses 21 transverse stations and a symmetric 10 kN/m tributary load on each girder. The independently expected midspan moment is w L2 / 8 = 781.250 kNm. OSPGrillage gives approximately 781.296 kNm, within the 0.1 percent regression tolerance.%
 
 
 %
-The governing total check is G2 under 1.0 DL + 1.0 LL. Its raw value is 62.158 mm, adjusted to approximately 24.549 mm and displayed as 24.550 mm against 41.670 mm, UR 0.589 and PASS. Design{-}check values are rounded to two decimal places by the existing designer.%
+Factoring by 1.35 gives a theoretical 1054.6875 kNm and a computed approximately 1054.749 kNm. Applying 1.35 as a group coefficient or as the outer case coefficient gives matching responses. Each support's directly queried vertical reaction is 506.25 kN, matching 3 times 10 times 25 divided by 2 times 1.35.%
 
 
 %
-The diagram is the separately selected 1.0 LL case, whose physical{-}girder maximum is 32.146 mm. The backend selects this static vehicle case by bending moment; it is not the vehicle{-}position envelope governing adjusted deflection. Dynamic allowance has already been applied by the live{-}load generator. The report now identifies the case difference instead of comparing unrelated values.%
+This benchmark checks moment, equilibrium and scaling independently. It does not use the production report's post{-}adjusted deflection as a reference solution.%
+
+%
+\section*{3. Confirmed patch{-}load corrections}%
+\label{sec:3.Confirmedpatch{-}loadcorrections}%
+A negative patch pressure exposed a centroid bug: get\_patch\_centroid replaced every non{-}positive total weight with 1. Negative uniform pressure therefore moved the computed centroid outside the mesh and the patch could disappear. The calculation now divides by the signed total and uses the geometric vertex mean when the total is zero.%
 
 
 %
-The composite adjustment remains an existing engineering modelling assumption. This audit verifies its arithmetic and data provenance and does not introduce a new stiffness methodology. Fatigue and stiffener failures remain visible.%
-
-%
-\section*{3. Stiffeners and authoritative summary mapping}%
-\label{sec:3.Stiffenersandauthoritativesummarymapping}%
-The 2030 mm spacing is the selected panel spacing, recorded as is\_c\_mm. The former optimized report mapping instead read stiff\_int\_space\_req, which is an optional calculated requirement and can be unavailable. The report now maps and labels the selected spacing explicitly, while persisting the optional requirement separately. Existing leg{-}height and other stiffener checks are unchanged.%
+A full{-}grid patch also counted complete boundary cells twice: once in the fully bounded{-}cell path and again in the intersection path. The intersection pass now skips cells already integrated completely.%
 
 
 %
-The detailed transverse{-}shear check reads the bridge composite{-}interface quantities, while the overall table searched for a girder check identifier that had been moved to deck design. Both now use transverse\_shear\_check, a single reader of the same actual demand and capacity.%
+Before the boundary correction, a 150 kN full{-}width patch could distribute 165 kN. After both corrections its signed resultant is exactly 150 kN before factoring. Partial patches spanning grid boundaries and patches aligned to grid lines reproduce their independent area integrals. The fixes operate on load integration and do not alter results to obtain passing checks.%
+
+%
+\section*{4. Fatigue, shear buckling and report consistency}%
+\label{sec:4.Fatigue,shearbucklingandreportconsistency}%
+Independent extraction from the regenerated xarray force dataset gives G3 frequent{-}SLS Mz extrema of {-}1541780.200848 and +1541779.296757 Nm. The implemented signed{-}local{-}moment range is 3083559.497605 Nm. With composite section modulus 16982734.444305 mm3, the stress is 181.570259 MPa. Dividing by the displayed fatigue capacity 92.49 MPa gives UR 1.963134, consistent with the recorded 1.9631 and displayed 1.96.%
 
 
 %
-After the factor correction the transverse{-}shear demand is about 253.33 kN/m against 999.28 kN/m, giving UR 0.25 and PASS. The old 0.18 belongs to the previous unfactored combination results and is not retained artificially.%
+Independent ULS extraction gives G1 vertical shear 488.729602 kN. Dividing by shear{-}buckling capacity 443.02 kN gives UR 1.103177, consistent with recorded 1.1032 and displayed 1.10. G3 also fails shear buckling at about 1.0696. Intermediate{-}stiffener failures remain present.%
 
 
 %
-Moment and shear member rows now use each girder's own recorded checks. Shear yielding and shear buckling share identifier 2, so the largest utilization must govern. A dedicated regression prevents the passing yielding check from hiding the failing buckling check. The overall summary and detailed tables now retain the governing shear failure around UR 1.10.%
-
-%
-\section*{4. Engineering references and force terminology}%
-\label{sec:4.Engineeringreferencesandforceterminology}%
-The imported composite helper is IRC22\_2014 in irc22\_2015.py. Both its module docstring and clause documentation explicitly identify IRC 22:2014. Report citations now identify that implemented basis and explain the filename discrepancy. This change does not migrate any engineering formula.%
+The fatigue number is verified as the output of the implemented signed local end{-}force envelope. Its interpretation as the physical cyclic stress range remains unconfirmed because i{-}end and j{-}end sign conventions and cross{-}case extrema require an engineering fatigue{-}range definition. The report preserves the failure and states this limitation rather than silently changing the calculation.%
 
 
 %
-Deck design imports IRC112\_2019 from irc112\_2019.py, whose module, class and effective{-}width equation documentation explicitly identify IRC 112:2020. The remaining IRC 112:2011 narrative was corrected using this source evidence. Older filenames alone were not treated as an edition declaration.%
+Executive summary, individual fatigue/shear checks, overall summary and component chart were compared with the recorded governing results. Component maximum ratios are approximately 1.9631 for plate girders, 0.9483 for deck slab, 0.54664 for cross bracing and 0.97 for diaphragms. The aggregate fatigue row is labelled as a signed frequent{-}SLS force envelope.%
+
+%
+\section*{5. Analysed actions and incomplete coverage}%
+\label{sec:5.Analysedactionsandincompletecoverage}%
+Combination construction now records actions requested by selected combinations but unavailable in the model. In this run they are vehicle\_collision, barge\_impact, floating\_bodies and thermal\_load. Actual combination expressions still include only available applied actions.%
 
 
 %
-Chapter 4 headings now describe end vertical forces and start/finish sums. They do not label them as nodal support reactions. The dataset stores member forces but no direct nodal reaction array.%
+Executive{-}summary load coverage is explicitly Incomplete. If no assessed check fails but requested actions are unavailable or coverage is unknown, the overall status cannot become Pass. A valid failure continues to determine the overall Fail status. Applicability of unavailable event actions must be established separately.%
 
 
 %
-Global x increases along the span, y is vertical and z transverse. Report locations are global x in metres. Summed end forces use the first element's Vi and minus the last element's Vj, divided by 1000 to obtain kN. These local member{-}end signs do not establish an upward{-}positive nodal{-}reaction convention.%
+Member{-}end vertical force sums remain distinguished from direct nodal support reactions. The benchmark queries actual nodal reactions, while the production dataset still stores member forces without a direct reaction array. Reinforcement quantities still require a complete schedule.%
 
 %
-\section*{5. Visual and mathematical corrections}%
-\label{sec:5.Visualandmathematicalcorrections}%
-Shear{-}connector resistance, steel contribution and concrete contribution now occupy separate formula rows. Fractions, square roots, subscripts, values and references remain readable inside their cells.%
-
-
-%
-Shared longtables use a consistent small font. Narrow girder columns were widened, an unbreakable stiffener heading shortened and the girder quantity equation split over two lines. The extra safety{-}factor spacing that caused a nearly empty continuation page was removed. Short deflection tables are kept together where space permits.%
+\section*{6. Verification records and deliverables}%
+\label{sec:6.Verificationrecordsanddeliverables}%
+All 29 available tests pass with pdflatex and pdftotext on PATH. This includes the original suite, single/multiple{-}page LaTeX regressions, realistic bridge moment/reaction checks, signed full and partial patch resultants, all relevant load types, and incomplete{-}coverage status aggregation.%
 
 
 %
-The component chart has more vertical space and wrapped component names. Missing quantity panels omit misleading numeric y ticks. CAD figures are height{-}constrained so the Chapter 6 opening heading and first view fit together. Duplicate PDF page anchors and duplicate assumption labels were corrected.%
+The actual desktop Design and Generate Report handlers were rerun after the numerical corrections. Generated longitudinal element commands and an independent fatigue/shear extraction were captured from that run. The final export uses that run's captured numerical payload and CAD/analysis images.%
 
 
 %
-The final report contains 53 physical pages. Every page was rendered and visually reviewed in page contact sheets, with numerical and formula pages also inspected during iteration. Compiler output contains no overfull horizontal or vertical boxes and no multiply{-}defined labels. All longtables retain first{-}page and continuation headings.%
-
-%
-\section*{6. Verification, quantities and limitations}%
-\label{sec:6.Verification,quantitiesandlimitations}%
-All 22 repository tests pass. The suite covers real solver factor scaling, nested coefficient copying, compound loads, independent result extraction, deflection arithmetic/reporting, stiffener spacing, transverse{-}shear mapping, formula structure, invalid/missing values, final section quantities, legacy barrier units, overall status aggregation and repeated shear identifiers. Two tests compile actual single{-}page and multipage longtables using pdflatex and pdftotext.%
+All 54 report pages were rendered and visually reviewed. The PDF has 21 distinct embedded images and repeated longtable headings. Text bounds show no margin clipping or footer overlap, with a minimum measured footer clearance of about 13.58 points. Compiler output contains no overfull boxes or multiply{-}defined labels.%
 
 
 %
-The desktop Design and Generate Report handlers were exercised in a hidden Qt window with the corrected solver factors, real member/deck design and CAD/analysis capture. Later presentation corrections were exported from that run's captured inputs, outputs and figure data. The before PDF is preserved; the after PDF and this technical document are updated in docs/report.%
+Report\_Before.pdf was checked against its committed Git blob and remains unchanged. Report\_After.pdf and Technical\_Changes.pdf in docs/report contain the final verification results. The numerical corrections touch ospgrillage/utils.py and osp\_grillage.py. Additional changes record requested{-}action availability and actual model properties and correct the report's analysis{-}basis descriptions.%
 
 
 %
-Final girder plate quantity remains 1.94640 m3 and 15.2792 MT from 0.025952 m2 times three 25 m girders. Pair{-}specific bracing, diaphragm, adopted stud spacing and barrier quantities remain sourced from the implemented quantity model. Reinforcement mass remains Not calculated because a complete bar schedule is absent.%
-
-
-%
-The reconstructed case still lacks minimum shade temperature and several optional actions. These omissions are explicitly reported; they are not replaced with invented loads or results. Direct nodal support reactions and a full reinforcement schedule remain unavailable.%
-
-
-%
-The recalculated girder fatigue utilization is about 1.96 and remains FAIL. Shear buckling and intermediate{-}stiffener failures remain visible. The difference from the earlier approximately 2.16 fatigue value follows the verified load{-}factor correction.%
+Remaining engineering limitations are the scalar deflection approximation, unconfirmed physical fatigue stress{-}range convention, missing thermal/event actions, unavailable production nodal reactions, incomplete reinforcement scheduling and the existing reconstructed{-}input basis. The report preserves the fatigue, shear{-}buckling and stiffener failures.%
 
 %
 \end{document}

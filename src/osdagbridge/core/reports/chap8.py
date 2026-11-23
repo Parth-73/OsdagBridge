@@ -106,7 +106,7 @@ IS 2062 & 2011 & Structural steel - yield and ultimate strength by grade \\
 
 \begin{itemize}
     \item All girders are modelled as simply supported; continuous spans are not currently supported.
-    \item A 3D grillage model (OSPGrillage) is used for load distribution. Grillage members carry composite section properties after the construction stage.
+    \item A 3D grillage model (OSPGrillage) is used for load distribution. Longitudinal grillage members carry saved steel-section properties. Composite stiffness is used in the design post-processing adjustment.
     \item The transverse member forces are computed using an approximate 2D frame analogy. For irregular or skewed geometries, a 3D FEM is recommended.
     \item Fixed bearing stiffness is modelled as $k = 1{,}000{,}000 \,\text{kN/m}$ (virtually rigid); free/expansion bearing as $k = 100 \, \text{kN/m}$.
     \item Construction stage sequence analysis is approximate. Detailed staged analysis should be performed for long-term deflection checks.
@@ -117,7 +117,7 @@ IS 2062 & 2011 & Structural steel - yield and ultimate strength by grade \\
 \begin{itemize}
     \item Full shear connection is assumed at ULS with headed stud connectors designed per IRC 22:2014 Cl.606.
     \item Short-term composite section properties (modular ratio $n = E_s/E_{cm}$) are used for ULS checks.
-    \item Long-term composite section properties (with creep-adjusted modular ratio) are used for SLS deflection and crack-width checks.
+    \item The implemented deflection adjustment uses the short-term transformed composite inertia. Long-term creep and staged effects require separate verification.
     \item Pre-composite stage: the steel girder alone resists all construction loads prior to concrete gaining strength.
 \end{itemize}
 """
