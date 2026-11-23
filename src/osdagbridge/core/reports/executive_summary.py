@@ -27,7 +27,9 @@ def executive_summary(input_dict, output_dict, fig_paths) -> str:
     # All girders share the same section, governing check, and UR.
     # The section designation is produced by the designer pipeline, so it lives
     # in output_dict (not input_dict).
-    sec = _render_value(output_dict, KEY_SD_SECTION_DESIGNATION)
+    final = output_dict.get("design_results") or {}
+    dimensions = [final.get(key) for key in ("D_mm", "tw_mm", "bf_top_mm", "tf_top_mm", "bf_bot_mm", "tf_bot_mm")]
+    sec = _tex("D / tw / btop / ttop / bbot / tbot (mm): " + " / ".join(str(value) if value is not None else "Not assessed" for value in dimensions))
 
     # ── Pull the stored result dicts once, then work off these locals ─────────
     # (no value is recomputed here — the pipeline already filled these in).
@@ -68,6 +70,10 @@ def executive_summary(input_dict, output_dict, fig_paths) -> str:
             outcomes[component] = "Not assessed"
         else:
             outcomes[component] = "Fail" if ratio > 1 else "Pass"
+    expected_girders = int(input_dict.get(KEY_TS_NO_OF_GIRDERS) or 0)
+    assessed_girders = [key for key, value in per_girder.items() if not key.startswith("EB") and value.get("checks")]
+    if len(assessed_girders) != expected_girders and not outcomes["Plate girders"].startswith("Fail"):
+        outcomes["Plate girders"] = "Not assessed"
     failed = [name for name, status in outcomes.items() if status.startswith("Fail")]
     overall_design_status = ("Fail (" + ", ".join(failed) + ")" if failed else
                              "Incomplete" if "Not assessed" in outcomes.values() else "Pass")

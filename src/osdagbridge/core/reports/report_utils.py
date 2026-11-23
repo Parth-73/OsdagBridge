@@ -24,7 +24,7 @@ def _tex(value):
 def _render_value(source_dict, key, unit=""):
     val = source_dict.get(key)
     if val in ("", None):
-        return ""
+        return "Not provided"
     return _tex(val) + unit
 
 

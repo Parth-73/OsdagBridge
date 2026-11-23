@@ -10,6 +10,7 @@ bridge-wrapper dependency.
 
 from __future__ import annotations
 import json
+import math
 from collections import OrderedDict
 from collections.abc import Mapping
 from pathlib import Path
@@ -726,14 +727,16 @@ def build_load_effects_cache(result_handler) -> dict:
                 for eid in elements:
                     try:
                         val = float(ds.sel(Loadcase=lc, Element=eid, Component=comp)["forces"]) / 1000.0
-                        mz_vals.append(val)
+                        if math.isfinite(val):
+                            mz_vals.append(val)
                     except Exception:
                         pass
             for comp in ("Vy_i", "Vy_j"):
                 for eid in elements:
                     try:
                         val = float(ds.sel(Loadcase=lc, Element=eid, Component=comp)["forces"]) / 1000.0
-                        vy_vals.append(val)
+                        if math.isfinite(val):
+                            vy_vals.append(val)
                     except Exception:
                         pass
             if mz_vals or vy_vals:
@@ -862,10 +865,10 @@ def build_forces_summary(result_handler, load_effects_cache: dict) -> dict:
     lc_summary = {}
     rxn_summary = {}
 
-    for lc in all_lcs:
+    for lc in sorted(all_lcs):
         # ── 1. Derive max_bm / bm_girder and max_sf / sf_girder from cache ──
-        global_bm, bm_girder = 0.0, "—"
-        global_sf, sf_girder = 0.0, "—"
+        global_bm, bm_girder = None, "—"
+        global_sf, sf_girder = None, "—"
 
         for girder_label, lc_data in load_effects_cache.items():
             entry = lc_data.get(lc)
@@ -881,10 +884,10 @@ def build_forces_summary(result_handler, load_effects_cache: dict) -> dict:
             vy_min = entry.get("Vy_min")
             vy = vy_max if (vy_max is not None and abs(vy_max) >= abs(vy_min or 0.0)) else vy_min
 
-            if mz is not None and abs(mz) > abs(global_bm):
+            if mz is not None and (global_bm is None or abs(mz) > abs(global_bm)):
                 global_bm = mz
                 bm_girder = girder_label
-            if vy is not None and abs(vy) > abs(global_sf):
+            if vy is not None and (global_sf is None or abs(vy) > abs(global_sf)):
                 global_sf = vy
                 sf_girder = girder_label
 
@@ -896,7 +899,7 @@ def build_forces_summary(result_handler, load_effects_cache: dict) -> dict:
         sf_gmap_key = cache_label_to_gmap_key.get(sf_girder)
 
         if bm_gmap_key:
-            best_abs = 0.0
+            best_abs = -1.0
             for eid, n1, n2 in g_map[bm_gmap_key].get("element_map", []):
                 for comp, node in (("Mz_i", n1), ("Mz_j", n2)):
                     try:
@@ -910,7 +913,7 @@ def build_forces_summary(result_handler, load_effects_cache: dict) -> dict:
                         pass
 
         if sf_gmap_key:
-            best_abs = 0.0
+            best_abs = -1.0
             for eid, n1, n2 in g_map[sf_gmap_key].get("element_map", []):
                 for comp, node in (("Vy_i", n1), ("Vy_j", n2)):
                     try:
@@ -924,10 +927,10 @@ def build_forces_summary(result_handler, load_effects_cache: dict) -> dict:
                         pass
 
         lc_summary[lc] = {
-            "max_bm":      round(global_bm, 3),
+            "max_bm":      round(global_bm, 3) if global_bm is not None else None,
             "bm_girder":   bm_girder,
             "bm_location": bm_location,
-            "max_sf":      round(global_sf, 3),
+            "max_sf":      round(global_sf, 3) if global_sf is not None else None,
             "sf_girder":   sf_girder,
             "sf_location": sf_location,
         }
@@ -935,6 +938,7 @@ def build_forces_summary(result_handler, load_effects_cache: dict) -> dict:
         # ── 3. Reactions — sum Ra and Rb across all interior girders ──
         left_total  = 0.0
         right_total = 0.0
+        reaction_count = 0
 
         for gmap_key in cache_label_to_gmap_key.values():
             element_map = g_map[gmap_key].get("element_map", [])
@@ -949,14 +953,17 @@ def build_forces_summary(result_handler, load_effects_cache: dict) -> dict:
                 rb = -float(ds.sel(
                     Loadcase=lc, Element=eid_end, Component="Vy_j"
                 )["forces"]) / 1000.0
+                if not math.isfinite(ra) or not math.isfinite(rb):
+                    continue
+                reaction_count += 1
                 left_total  += ra
                 right_total += rb
             except Exception:
                 pass
 
         rxn_summary[lc] = {
-            "left_kN":  round(left_total,  3),
-            "right_kN": round(right_total, 3),
+            "left_kN":  round(left_total, 3) if reaction_count == len(cache_label_to_gmap_key) and reaction_count else None,
+            "right_kN": round(right_total, 3) if reaction_count == len(cache_label_to_gmap_key) and reaction_count else None,
         }
 
     return {"load_cases": lc_summary, "reactions": rxn_summary}

@@ -49,3 +49,21 @@ def component_ratios(outputs):
         "Cross bracing": _max_member_efficiency(outputs.get("crossbracing_design_results")),
         "End diaphragms": _max_member_efficiency(outputs.get("end_diaphragm_design_results")),
     }
+
+
+def governing_check(outputs, check_id, girder=None):
+    """Return the governing recorded design check with its girder and load case."""
+    candidates = []
+    for label, result in (outputs.get("design_results") or {}).get("per_girder", {}).items():
+        if label.startswith("EB") or (girder is not None and label != girder):
+            continue
+        for lc, values in (result.get("per_lc") or {}).items():
+            for check in values.get("checks", []):
+                demand, capacity = check.get("demand"), check.get("capacity")
+                if check.get("check_id", check.get("id")) != check_id or demand is None or capacity is None:
+                    continue
+                if check.get("demand_unit", "mm") != check.get("capacity_unit", "mm"):
+                    continue
+                if isfinite(float(demand)) and isfinite(float(capacity)) and float(capacity) > 0:
+                    candidates.append((float(demand) / float(capacity), float(demand), float(capacity), label, lc))
+    return max(candidates, default=None)

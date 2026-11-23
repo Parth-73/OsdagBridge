@@ -318,6 +318,7 @@ def _girder_tables(input_dict, n_girders):
 
 
 def _bracing_tables(input_dict, n_girders):
+    input_dict = {key: (value.split(" to ")[0] if isinstance(value, str) and " to " in value and len(set(value.split(" to "))) == 1 else value) for key, value in input_dict.items()}
     n = n_girders if n_girders >= 2 else 2
     panels = [
         (
@@ -362,7 +363,7 @@ def _bracing_tables(input_dict, n_girders):
 
 \begin{longtable}{\MemberPropertiesColumns}
 \caption{\textbf{Member Properties: Cross Bracing Details}}\\
-\reporthead{\textbf{Location} & \textbf{Member IDs} & \textbf{Type of Bracing} & \textbf{Bracing Section} & \textbf{Spacing (m)}}
+\reporthead{\textbf{Location} & \textbf{Member IDs} & \textbf{Type of Bracing} & \textbf{Initial section} & \textbf{Spacing (m)}}
 """
 + cb_rows
 + r"""\end{longtable}
@@ -372,7 +373,7 @@ def _bracing_tables(input_dict, n_girders):
 
 \begin{longtable}{\MemberPropertiesColumns}
 \caption{\textbf{Member Properties: End Diaphragm Details}}\\
-\reporthead{\textbf{Location} & \textbf{Member IDs} & \textbf{Type of Bracing} & \textbf{Bracing Section}}
+\reporthead{\textbf{Location} & \textbf{Member IDs} & \textbf{Type of Bracing} & \textbf{Initial section}}
 """
 + ed_rows
 + r"""\end{longtable}

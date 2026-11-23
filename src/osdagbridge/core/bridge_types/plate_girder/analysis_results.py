@@ -423,72 +423,37 @@ class PlateGirderAnalysisResults:
 
         nodes, elements, adj = self.build_grillage_connectivity()
 
-        # AUTO EXTRACT START / END
-        x_coords = {n: coord[0] for n, coord in nodes.items()}
-
-        min_x = min(x_coords.values())
-        max_x = max(x_coords.values())
-
-        start_nodes = [n for n, x in x_coords.items() if x == min_x]
-        end_nodes = [n for n, x in x_coords.items() if x == max_x]
-
-        start_nodes.sort(key=lambda n: nodes[n][2])
-        end_nodes.sort(key=lambda n: nodes[n][2])
-
-        if verbose:
-            print("\nStart edge nodes :", start_nodes)
-            print("End edge nodes   :", end_nodes)
-
-        # span length
-        x_coords = [c[0] for c in nodes.values()]
-        span_length = max(x_coords) - min(x_coords)
-
-        if verbose:
-            print(f"\nSpan length from geometry = {span_length}\n")
-
+        # Longitudinal mesh lines retain constant transverse z, including at skew supports.
+        # Global minimum/maximum x selects only the outermost corners of a skewed mesh.
+        lines = defaultdict(list)
+        for eid, conn in elements.items():
+            if len(conn) != 2:
+                continue
+            n1, n2 = conn
+            x1, _, z1 = nodes[n1]
+            x2, _, z2 = nodes[n2]
+            if abs(z1 - z2) < 1e-6 and abs(x1 - x2) > 1e-6:
+                if x2 < x1:
+                    n1, n2 = n2, n1
+                lines[round(z1, 6)].append((eid, n1, n2))
         girder_map = {}
-        all_pairs = list(zip(start_nodes, end_nodes))
-        num_pairs = len(all_pairs)
-
-        for i, (s, e) in enumerate(all_pairs, start=1):
-            # --- NAMING LOGIC ---
-            name = f"G{i}"
-            if self.edge_dist > 0:
-                if i == 1:
-                    name = "EB1"
-                elif i == num_pairs:
-                    name = "EB2"
-
-            path = self.bfs_shortest_path(adj, s, e)
-            path_elements, element_map = self.get_elements_along_path(path, elements)
-            length = self.compute_path_distance(nodes, path)
-
-            status = "VERIFIED" if abs(length - span_length) < 1e-6 else "NOT MATCHING"
-
-            if verbose:
-                print("----------------------------------------")
-                print(f"Member: {name}")
-                print("----------------------------------------")
-
-                print("Path     :", path)
-                print("Elements :", path_elements)
-
-                print("\nElement connectivity:")
-                for eid, n1, n2 in element_map:
-                    print(f"{eid:<5}: {n1} -> {n2}")
-
-                print(f"\nLength   : {length:.3f} m ({status})")
-                print("----------------------------------------\n")
-
+        structural_index = 0
+        for index, z in enumerate(sorted(lines)):
+            element_map = sorted(lines[z], key=lambda item: nodes[item[1]][0])
+            path = [element_map[0][1]] + [item[2] for item in element_map]
+            if any(left[2] != right[1] for left, right in zip(element_map, element_map[1:])):
+                raise ValueError(f"Disconnected longitudinal mesh line at z={z}")
+            if self.edge_dist > 0 and index in (0, len(lines) - 1):
+                name = "EB1" if index == 0 else "EB2"
+            else:
+                structural_index += 1
+                name = f"G{structural_index}"
             girder_map[name] = {
-                "start": s,
-                "end": e,
-                "path": path,
-                "elements": path_elements,
+                "start": path[0], "end": path[-1], "path": path,
+                "elements": [item[0] for item in element_map],
                 "element_map": element_map,
-                "length": length
+                "length": self.compute_path_distance(nodes, path),
             }
-
         return girder_map, elements
 
     def filter_girders(self, girder_map):

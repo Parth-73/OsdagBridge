@@ -103,7 +103,7 @@ def ch3_loads(input_dict):
             vehicle_rows.append(_tex(name) + r" & --- & --- & --- & --- \\\hline")
     vehicle_body = "\n".join(vehicle_rows) or r"\multicolumn{5}{c}{No vehicles selected} \\\hline"
     lanes = design_lane_count(input_dict)
-    braking_force_str = "Not supplied"
+    braking_force_str = "Not calculated"
     if lanes and braking_selected:
         braking_force_str = f"{code.cl_211_2_braking_force(lanes) * 9.81:.2f}"
 
@@ -179,6 +179,19 @@ def ch3_loads(input_dict):
 
     def _sl(v, unit=""):
         return f"{float(v):.4f}{unit}" if v not in (None, "") else "N/A"
+
+    def temperature(key, fallback=None):
+        value = input_dict.get(key)
+        if value in (None, ""):
+            value = fallback
+        try:
+            numeric = float(value)
+            import math
+            if math.isfinite(numeric):
+                return f"{numeric:g}" + r" $^\circ$C"
+        except (TypeError, ValueError):
+            pass
+        return "Not provided"
 
     # Table 3.6 — Temperature: compute effective bridge temp range from shade temps
     tl_temp_min = tl_temp_max = tl_rise = tl_fall = "N/A"
@@ -285,14 +298,14 @@ This section summarizes all loads applied to the bridge and the load combination
 \caption{\textbf{Associated vehicle forces}}\\
 \reporthead{Parameter & Value & Unit}
 Lane braking load & """ + _tex(braking_force_str) + r""" & kN \\
-Centrifugal force & Not supplied & kN \\
+Centrifugal force & Not calculated & kN \\
 \hline
 \end{longtable}
 
 \begin{longtable}{\VehicleLiveLoadsColumns}
 \caption{\textbf{Footway Live Load}}\\
 \reporthead{\textbf{Parameter} & \textbf{Value} & \textbf{Unit}}
-Footpath configuration & """ + _tex(input_dict.get(KEY_FOOTPATH) or "Not supplied") + r""" & --- \\
+Footpath configuration & """ + _tex(input_dict.get(KEY_FOOTPATH) or "Not calculated") + r""" & --- \\
 Footway pressure & """ + _tex(fp_str) + r""" & kN/m$^2$ \\
 \hline
 \end{longtable}
@@ -337,9 +350,9 @@ Footway pressure & """ + _tex(fp_str) + r""" & kN/m$^2$ \\
 \hline
 \textnormal{Vertical Seismic Coefficient, Av} & """ + (_render_value(input_dict, KEY_SL_VERTICAL_COEFF)) + r""" \\[\reportrowgap]
 \hline
-\textnormal{Horizontal Seismic Force (longitudinal)} & Not supplied \\[\reportrowgap]
+\textnormal{Horizontal Seismic Force (longitudinal)} & Not calculated \\[\reportrowgap]
 \hline
-\textnormal{Horizontal Seismic Force (transverse)} & Not supplied \\[\reportrowgap]
+\textnormal{Horizontal Seismic Force (transverse)} & Not calculated \\[\reportrowgap]
 \hline
 \end{longtable}
 
@@ -347,13 +360,17 @@ Footway pressure & """ + _tex(fp_str) + r""" & kN/m$^2$ \\
 \begin{longtable}{\TypicalSectionDetailsColumns}
 \caption{\textbf{Temperature Load (TL) --- per IRC 6}}\\
 \reporthead{\textbf{parameter} & \textbf{value}}
-\textnormal{Maximum Shade Temperature} & """ + (_render_value(input_dict,'shade_temp_max') or 'Unavailable') + r""" $^\circ$C \\[\reportrowgap]
+\textnormal{Maximum Shade Temperature} & """ + temperature('shade_temp_max') + r""" \\[\reportrowgap]
 \hline
-\textnormal{Minimum Shade Temperature} & """ + (_render_value(input_dict,'shade_temp_min') or 'Unavailable') + r""" $^\circ$C \\[\reportrowgap]
+\textnormal{Minimum Shade Temperature} & """ + temperature('shade_temp_min') + r""" \\[\reportrowgap]
 \hline
-\textnormal{Effective Bridge Temp. Range} & """ + (_render_value(input_dict, KEY_TL_BRIDGE_TEMP_MIN) or tl_temp_min) + r""" to """ + (_render_value(input_dict, KEY_TL_BRIDGE_TEMP_MAX) or tl_temp_max) + r""" $^\circ$C \\[\reportrowgap]
+\textnormal{Effective Bridge Temp. Minimum} & """ + temperature(KEY_TL_BRIDGE_TEMP_MIN, tl_temp_min) + r""" \\[\reportrowgap]
 \hline
-\textnormal{Temperature Rise / Fall for Design} & +""" + (_render_value(input_dict, KEY_TL_TEMP_RISE) or tl_rise) + r""" $^\circ$C / \textminus{}""" + (_render_value(input_dict, KEY_TL_TEMP_FALL) or tl_fall) + r""" $^\circ$C \\[\reportrowgap]
+\textnormal{Effective Bridge Temp. Maximum} & """ + temperature(KEY_TL_BRIDGE_TEMP_MAX, tl_temp_max) + r""" \\[\reportrowgap]
+\hline
+\textnormal{Temperature Rise} & """ + temperature(KEY_TL_TEMP_RISE, tl_rise) + r""" \\[\reportrowgap]
+\hline
+\textnormal{Temperature Fall Magnitude} & """ + temperature(KEY_TL_TEMP_FALL, tl_fall) + r""" \\[\reportrowgap]
 \hline
 \end{longtable}
 

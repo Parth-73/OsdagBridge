@@ -52,7 +52,7 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
     reaction_rows = "\n".join(
         " & ".join((_tex(lc), _fmt(values.get("left_kN")), _fmt(values.get("right_kN"))))
         + r" \\\hline" for lc, values in rxn_summary.items()
-    ) or r"\multicolumn{3}{c}{Support reactions unavailable} \\\hline"
+    ) or r"\multicolumn{3}{c}{Analysis unavailable} \\\hline"
 
     _span_m         = float(bridge.input_dict.get(KEY_SPAN, 0) or 0)
     _allow_live_mm  = _span_m * 1000.0 / 800.0
@@ -74,17 +74,35 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
         if _t is not None:
             _total_mm = max(_total_mm, float(_t)) if _total_mm is not None else float(_t)
 
-    _live_str        = f"{_live_mm:.3f} mm"  if _live_mm  is not None else "---"
-    _total_str       = f"{_total_mm:.3f} mm" if _total_mm is not None else "---"
-    _allow_live_str  = f"L/800 = {_allow_live_mm:.1f} mm"
-    _allow_total_str = f"L/600 = {_allow_total_mm:.1f} mm"
-    _live_status     = ("PASS" if _live_mm  <= _allow_live_mm  else r"\textcolor{red}{FAIL}") if _live_mm  is not None else "---"
-    _total_status    = ("PASS" if _total_mm <= _allow_total_mm else r"\textcolor{red}{FAIL}") if _total_mm is not None else "---"
+    raw_live = _live_mm
+    raw_total = _total_mm
+    from .summary_values import governing_check
+    live_check = governing_check(bridge.output_dict, 13)
+    total_check = governing_check(bridge.output_dict, 14)
+    def check_text(check):
+        if check is None:
+            return "Not assessed", "Not assessed", "Not assessed"
+        ratio, demand, capacity, label, lc = check
+        return (f"{demand:.3f} mm ({_tex(label)}, {_tex(lc)})",
+                f"{capacity:.3f} mm", f"{ratio:.3f} --- " + ("PASS" if ratio <= 1 else "FAIL"))
+    _live_str, _allow_live_str, _live_status = check_text(live_check)
+    _total_str, _allow_total_str, _total_status = check_text(total_check)
+    basis_note = (
+        "The design checks use the member designer's composite-stiffness-adjusted displacement. "
+        "The analysis diagrams show raw grillage displacement. "
+        f"Raw 1.0 LL girder maximum is {_fmt(raw_live)} mm and raw DL + LL maximum is {_fmt(raw_total)} mm. "
+        "These raw values are reported separately from the adjusted serviceability check. "
+        "The 1.0 LL case includes the dynamic allowance applied by the live-load generator."
+    )
+    thermal_note = ""
+    if not any(" TL" in str(lc) for lc in all_lcs):
+        thermal_note = "No standalone temperature load result is available. The generated combination definitions do not establish that a missing thermal action was analysed."
     return r"""
 \chapter{Analysis Results}
 
 A grillage model was used for structural analysis. The deck is idealized as a grid of elastic beam elements --- longitudinal members represent the composite steel girders with effective slab, and transverse members represent the slab or cross frames. This section summarizes the critical output from that analysis.
 
+\noindent """ + _tex(thermal_note) + r"""
 \vspace{1em}
 \begingroup
 \footnotesize
@@ -96,7 +114,7 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \multirow{2}{*}{\makecell{\textbf{Load}\\\textbf{Case/}\\\textbf{Comb.}}}
 & \multicolumn{3}{c|}{\textbf{Bending Moment}}
 & \multicolumn{3}{c|}{\textbf{Shear Force}}
-& \multicolumn{2}{c|}{\textbf{Reaction at Supports}}\\
+& \multicolumn{2}{c|}{\textbf{End Vertical Forces}}\\
 \cline{2-9}
 
 & \makecell{\textbf{Max}\\\textbf{(kNm)}}
@@ -114,7 +132,7 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \multirow{2}{*}{\makecell{\textbf{Load}\\\textbf{Case/}\\\textbf{Comb.}}}
 & \multicolumn{3}{c|}{\textbf{Bending Moment}}
 & \multicolumn{3}{c|}{\textbf{Shear Force}}
-& \multicolumn{2}{c|}{\textbf{Reaction at Supports}}\\
+& \multicolumn{2}{c|}{\textbf{End Vertical Forces}}\\
 \cline{2-9}
 
 & \makecell{\textbf{Max}\\\textbf{(kNm)}}
@@ -134,9 +152,10 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \end{longtable}
 \endgroup
 
+\noindent End-force sums are derived from the first and last longitudinal member vertical forces. Direct nodal support reactions are not stored in the analysis dataset.
 \vspace{1em}
 \begin{longtable}{\ReactionsAtSupportsColumns}
-\caption{\textbf{Reactions at Supports}}\\
+\caption{\textbf{Support-end Vertical Force Sums}}\\
 \reporthead{\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)}}
 """ + reaction_rows + r"""
 \end{longtable}
@@ -145,22 +164,22 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \begin{longtable}{\DeflectionSummaryLiveLoadTotalColumns}
 \caption{\textbf{Deflection Summary (Live Load \& Total Load)}}\\
 \reporthead{\textbf{parameter} & \textbf{value}}
-\textnormal{Deflection due to Live Load, $\delta_{LL}$} & """ + _live_str + r""" \\[\reportrowgap]
+\textnormal{Design deflection due to Live Load, $\delta_{LL}$} & """ + _live_str + r""" \\[\reportrowgap]
 \hline
 \textnormal{Allowable Live Load Deflection ($\Delta_{allow}$)} & """ + _allow_live_str + r""" \\[\reportrowgap]
 \hline
-\textnormal{Live Load Deflection Check Status} & """ + _live_status + r""" \\[\reportrowgap]
+\textnormal{Live Load UR and Status} & """ + _live_status + r""" \\[\reportrowgap]
 \hline
-\textnormal{Deflection due to Total Load, $\delta_{total}$} & """ + _total_str + r""" \\[\reportrowgap]
+\textnormal{Design deflection due to Total Load, $\delta_{total}$} & """ + _total_str + r""" \\[\reportrowgap]
 \hline
 \textnormal{Allowable Total Deflection ($\Delta_{allow}$)} & """ + _allow_total_str + r""" \\[\reportrowgap]
 \hline
-\textnormal{Total Load Deflection Check Status} & """ + _total_status + r""" \\[\reportrowgap]
+\textnormal{Total Load UR and Status} & """ + _total_status + r""" \\[\reportrowgap]
 \hline
 \end{longtable}
 
 \vspace{1em}
-\noindent
+\noindent """ + _tex(basis_note) + r"""
 """ + _fig_embed(fig_paths.get('bm_envelope'), 'Bending Moment Envelope (Envelope ULS): Max/min BM along span. X-axis: distance from left support (m). Y-axis: Bending Moment (kN-m).', width=r'0.75\textwidth') + r"""
 """ + _fig_embed(fig_paths.get('sf_envelope'), 'Shear Force Envelope (Envelope ULS): Max/min SF along span. X-axis: distance from left support (m). Y-axis: Shear Force (kN).', width=r'0.75\textwidth') + r"""
 """ + _fig_embed(fig_paths.get('defl_ll'), 'Vertical Deflection D$_y$ (1.0 LL): Maximum deflection along span. Load Case: 1.0 LL, Combination: $D_y$. Nodes shown. Isometric view.', width=r'0.75\textwidth') + r"""

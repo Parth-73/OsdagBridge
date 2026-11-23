@@ -146,7 +146,7 @@ from osdagbridge.core.reports.report_utils import _tex, _render_value, get_girde
 if TYPE_CHECKING:
     pass
 from .charts import bar_chart
-from .summary_values import component_ratios
+from .summary_values import component_ratios, governing_check
 
 
 def transverse_tables(data):
@@ -581,16 +581,18 @@ def ch5_design_checks(checks_data, bridge, chart_dir=None) -> str:
     # "G1".."Gn" suffix, so read them from there by loop index.
     t510_rows = []
     for _gi, (lbl, _) in enumerate(girder_entries, start=1):
-        _live_mm  = bridge.output_dict.get(f"{KEY_SD_DEFL_LIVE}.G{_gi}")
-        _total_mm = bridge.output_dict.get(f"{KEY_SD_DEFL_TOTAL}.G{_gi}")
+        live = governing_check(bridge.output_dict, 13, lbl)
+        total = governing_check(bridge.output_dict, 14, lbl)
+        _live_mm = live[1] if live else None
+        _total_mm = total[1] if total else None
 
         t510_rows.append(
-            r"\multirow[t]{2}{*}{\makecell{" + lbl + r"""}} & Live Load Deflection, $\delta_{LL}$ (mm) & """
+            r"\multirow[t]{2}{*}{\makecell{" + lbl + r"""}} & Adjusted Live Load Deflection, $\delta_{LL}$ (mm) & """
             + _allow_live_str + r""" & """
             + _dfmt(_live_mm,  nd=3) + r""" & """
             + _defl_status(_live_mm,  _allow_live_mm) + r""" \\[\reportrowgap]
 \cline{2-5}
- & Total Load Deflection, $\delta_{total}$ (mm) & """
+ & Adjusted Total Load Deflection, $\delta_{total}$ (mm) & """
             + _allow_total_str + r""" & """
             + _dfmt(_total_mm, nd=3) + r""" & """
             + _defl_status(_total_mm, _allow_total_mm) + r""" \\[\reportrowgap]

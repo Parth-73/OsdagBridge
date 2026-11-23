@@ -1,3 +1,4 @@
+from .report_utils import _render_value
 from typing import List
 
 from osdagbridge.core.utils.common import (
@@ -35,7 +36,17 @@ def ch8_design_log(log_entries: List[str], input_dict: dict) -> str:
 
     mode = str(input_dict.get(KEY_DESIGN_MODE, 'Optimized')).strip().lower()
     is_custom = mode in {'custom', 'customized'}
-    return _ch8_assumptions(is_custom)
+    applied = (
+        r"\section{Applied material values and quantity basis}"
+        + "Applied steel unit weight is " + _render_value(input_dict, "material.girder.density", r" kN/m$^3$")
+        + ". Applied concrete unit weight is " + _render_value(input_dict, "material.deck.density", r" kN/m$^3$")
+        + r". These saved material inputs govern loading. Quantity mass uses 7850 kg/m$^3$ for steel and 2500 kg/m$^3$ for concrete."
+        + r" Girder quantities use final designed plate geometry and exclude unmodelled stiffener, weld and connection material."
+        + r" Reinforcement quantity requires a bar schedule including layer extents and anchorage and is marked Not calculated."
+        + r" The implementation imports IRC22\_2014 from irc22\_2015.py. This legacy class name is retained."
+        + r" Chapter references describe the editions identified by the existing calculation modules. No code-edition formula migration was performed."
+    )
+    return _ch8_assumptions(is_custom) + applied
 
 
 def _ch8_assumptions(is_custom: bool) -> str:

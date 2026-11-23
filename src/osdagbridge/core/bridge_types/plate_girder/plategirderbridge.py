@@ -787,6 +787,8 @@ class PlateGirderBridge:
             # Stage 8: 3D CAD & Drawing Generation
             self._run_stage("8", self._stage_cad_generation)
 
+            self.output_dict["quantity_model.cross_bracing_stations"] = self.grillage_geometry.n_t - 2
+
             # Freeze output_dict — no further writes allowed after this point
             self.output_dict = types.MappingProxyType(self.output_dict)
             # Log memory after the design completes so growth per iteration is visible.
@@ -2293,7 +2295,7 @@ class PlateGirderBridge:
 
     def _run_dcr_checks(self, dataset) -> None:
         """Run structural capacity checks and push DCR percentages to the output dock."""
-        results = PlateGirderAnalysisResults(dataset=dataset, bridge=self.grillage_model)
+        results = PlateGirderAnalysisResults(dataset=dataset, bridge=self.grillage_model, edge_dist=self.get_edge_dist())
         _, engine, design_results = run_design_check(
             plate_girder_bridge=self,
             analysis_results=results,
@@ -3267,6 +3269,7 @@ class PlateGirderBridge:
         return PlateGirderAnalysisResults(
             dataset=results,
             bridge=self.grillage_model,
+            edge_dist=self.get_edge_dist(),
         )
 
     def compute_load_effects_cache(self) -> None:

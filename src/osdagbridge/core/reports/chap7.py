@@ -39,4 +39,8 @@ def ch7_quantities(input_dict, chart_dir=None):
 \hline
 \end{longtable}
 \endgroup
+\noindent Quantities use final designed sections. Girder plate steel excludes stiffeners and connection material.
+Stud quantities cover the cylindrical shank, using the adopted longitudinal spacing.
+Reinforcement requires a complete bar schedule and is not calculated.
+
 """ + charts

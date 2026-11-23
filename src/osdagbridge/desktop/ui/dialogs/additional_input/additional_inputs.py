@@ -931,6 +931,7 @@ class AdditionalInputs(QDialog):
                 KEY_CB_WIDTH:   f"{geom[KEY_CB_WIDTH]  / 1000:.3f}",
                 KEY_CB_HEIGHT:  f"{geom[KEY_CB_HEIGHT] / 1000:.3f}",
                 KEY_CB_AREA:    f"{area / 1e6:.4f}",
+                "quantity_model.crash_barrier_area_unit": "m2",
                 KEY_CB_LOAD:    f"{load:.2f}",
             }
 
@@ -945,6 +946,7 @@ class AdditionalInputs(QDialog):
                 KEY_CB_WIDTH:   f"{geom[KEY_CB_WIDTH]  / 1000:.3f}",
                 KEY_CB_HEIGHT:  f"{geom[KEY_CB_HEIGHT] / 1000:.3f}",
                 KEY_CB_AREA:    f"{area / 1e6:.4f}",
+                "quantity_model.crash_barrier_area_unit": "m2",
                 KEY_CB_LOAD:    f"{load:.2f}",
             }
 

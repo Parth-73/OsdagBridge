@@ -7,103 +7,110 @@
 \usepackage{geometry}%
 \geometry{margin=22mm}%
 %
-\title{OsdagBridge Report Generator Changes}\author{Report refactoring submission}\date{23 November 2026}%
+\title{OsdagBridge Final Report Audit}\author{Implementation and verification record}\date{23 November 2026}%
 %
 \begin{document}%
 \normalsize%
 \maketitle%
-\section*{Scope and baseline}%
-\label{sec:Scopeandbaseline}%
-The target repository Parth{-}73/od was initially empty. Its dev branch was initialized from Nidhikhare12/OsdagBridge at commit d74f56d. The same changes are published in the GitHub fork Parth{-}73/OsdagBridge.%
+\section*{Repository and data flow}%
+\label{sec:Repositoryanddataflow}%
+The audit began on branch dev at commit 8d4e50d. Origin is Parth{-}73/od, fork is Parth{-}73/OsdagBridge, and upstream is Nidhikhare12/OsdagBridge. Report\_Before.pdf remains the original supplied sample.%
 
 
 %
-Report\_Before.pdf is the supplied OsdagReport 1.pdf, preserved byte for byte. Report\_After.pdf was regenerated through the desktop Design and Generate Report handlers using a 25 m span, 6 m carriageway, 14 degree skew, Ujjain location, E 350A steel and M40 concrete. Additional values came from the application's defaults and material dialog. The original saved input file was unavailable, so the regenerated case uses reconstructed inputs.%
-
-%
-\section*{Layout and table changes}%
-\label{sec:Layoutandtablechanges}%
-styles.py owns the LaTeX preamble, geometry including header and footer space, table column specifications, row spacing, continuation{-}header macro, colours and chart colours. report\_generator.py imports this preamble. Chapter templates consume the shared column types and reporthead macro.%
+PlateGirderBridge.design builds the grillage, runs analysis and member/deck checks, persists results and freezes output\_dict. AnalysisResults reconstructs longitudinal mesh lines. results\_data.py extracts numerical caches. generate\_design\_report builds a ReportPayload and analysis summary. report\_generator.py compiles chapter templates and temporary figures into the PDF.%
 
 
 %
-Chapters 2 through 5, 7 and 8 use longtable with first{-}page and continuation headers. Captions terminate their own rows. Table padding and row gaps were reduced consistently. Existing grouped analysis headings retain their explicit endfirsthead and endhead definitions.%
+Report styles are centralized in styles.py. summary\_values.py supplies component ratios and governing serviceability checks. charts.py creates headless Matplotlib figures and embeds them through PyLaTeX. boq\_generator.py supplies Chapter 7 quantities.%
+
+%
+\section*{Confirmed root causes and corrections}%
+\label{sec:Confirmedrootcausesandcorrections}%
+The original analysis{-}result extractor paired global minimum{-}x and maximum{-}x nodes. On the 14{-}degree skewed mesh, these selected extreme corners and produced one crossing path. An edge{-}aware cache could then exclude that path, leaving Chapter 4 empty. analysis\_results.py now follows connected constant{-}z longitudinal mesh lines, orders elements along x and labels the two edge beams separately. Both report and design entry points now pass the actual edge distance. Three physical girders are assessed, with two edge mesh lines excluded.%
 
 
 %
-chap1.py uses the shared project{-}details column style. executive\_summary.py uses a row per girder to avoid a table growing horizontally with the number of girders. chap6.py embeds supplied CAD captures and omits empty image boxes.%
-
-%
-\section*{Load and result presentation}%
-\label{sec:Loadandresultpresentation}%
-chap3.py lists only selected standard and custom vehicles, with total load where available, impact multiplier, braking selection and eccentricity. Saved false strings are handled correctly. Footway pressure has its own table and respects automatic, custom and absent{-}footpath modes. Wind values already calculated by the module are now rendered.%
+The section take{-}off read stale input area 0.02388012 m² and input mass, while the design module used final plate geometry. The final area is independently computed as (1390 {-} 18 {-} 18) times 8 plus two times 420 times 18, giving 25952 mm². Three 25 m girders therefore contain 1.94640 m³ of plate steel and weigh 15.2792 MT at 7850 kg/m³. The take{-}off now derives all three values from final geometry. Stiffeners and connection material are excluded from this plate{-}only model.%
 
 
 %
-report\_utils.py provides design{-}lane lookup from a saved lane count or the existing carriageway{-}width helper. The braking helper in utils/codes/irc6\_2017.py now initializes the optional additional{-}lane term and returns tonnes in accordance with its documented contract. The report converts tonnes to kN once.%
+Cross{-}bracing quantities previously assumed one representative area and a guessed panel count. The backend now records the number of interior transverse stations in the generated mesh. The take{-}off sums pair{-}specific final areas and member lengths at those stations. Chord enablement is respected. End diaphragms use their own final mass{-}per{-}metre properties and recorded lengths at both supports.%
 
 
 %
-chap2.py converts backend girder dimensions from metres to displayed millimetres. chap4.py renders actual reaction{-}summary rows. chap9.py aligns reference years with the code editions recorded in Chapter 8.%
+Crash{-}barrier defaults stored mm² while GUI calculations stored m² under the same key. Defaults and GUI now record m² explicitly. Legacy files are resolved only when one unit interpretation agrees with the saved line load and density. Ambiguous cases remain Not calculated. The audited RCC barrier total is about 15.12 m³ using the saved rounded area.%
 
 
 %
-summary\_values.py supplies component maxima for both the executive summary and the chart, including available transverse{-}member slenderness checks. A missing component result is labelled Not assessed. The overall result becomes Incomplete when required results are missing, and Fail when a component fails.%
+The previous reinforcement quantity was a 120 kg/m³ allowance unrelated to the designed bars. It is now Not calculated because layer extents, laps and anchorage are unavailable. The chart marks its mass unavailable. Stud quantity uses the adopted spacing, rounds interval count upward, and identifies the quantity as cylindrical shank steel.%
 
 
 %
-chap5.py reads end{-}diaphragm forces and design results independently from cross{-}bracing results. Axial check names replace the previous moment/shear labels for bracing diaphragms. Capacity tables distinguish grillage analysis force from the member designer's utilization, which can include its own design conditions. The shared result decoder moved to results\_data\_post\_processing.py so report readers do not need to initialize OpenSees.%
-
-%
-\section*{Charts and quantity integration}%
-\label{sec:Chartsandquantityintegration}%
-charts.py creates Matplotlib Figure objects without a GUI and embeds saved PNG images using PyLaTeX Figure. Assets live in the report generation temporary directory and are removed when generation exits.%
+Per{-}load{-}case design checks serialize their identifier as id, while top{-}level checks use check\_id. The governing{-}check reader now accepts both schemas. This fixes previously empty serviceability rows and retains the recorded load case and girder.%
 
 
 %
-Section 5.5 includes a component utilization chart for plate girders, deck slab, cross bracing and end diaphragms. The y{-}axis is utilization ratio. A red dashed line marks UR = 1.0. Bars exceeding that limit use the failure colour. Missing values receive N/A labels.%
+The needspace hook before longtables caused continuation headings to appear before new captions near page boundaries. The hook was removed and empty endfoot/endlastfoot definitions added to the shared header macro. Two actual compiled layout regressions confirm one caption and one heading per occupied page.%
+
+%
+\section*{Deflection investigation}%
+\label{sec:Deflectioninvestigation}%
+The 1.0 LL analysis case is selected by the backend from a governing static vehicle case using bending moment. Its raw plotted displacement is about 32.146 mm and includes the dynamic allowance already applied by the load generator. It is a single selected case rather than the complete envelope of all vehicle positions.%
 
 
 %
-Chapter 7 includes structural steel tonnage by component, and separate axes for concrete volume in cubic metres and reinforcement mass in metric tonnes. Its quantities reuse calculate\_material\_quantities. boq/boq\_generator.py adds end{-}diaphragm tonnage from recorded section mass, member lengths and both supports. plategirderbridge.py records the diaphragm member lengths used for that take{-}off.%
+The existing designer applies a composite{-}to{-}steel stiffness correction to raw grillage deflections and evaluates individual live cases and the DL + LL case. The audited governing recorded live check is 13.970 mm against 31.250 mm, UR 0.447. The recorded total check is 24.550 mm against 41.670 mm, UR 0.589. The report now exposes the correction basis and the raw maxima separately and uses the same recorded checks in Chapters 4, 5 and the overall summary.%
 
 
 %
-pyproject.toml declares PyLaTeX and the Matplotlib version required by the chart API. generate\_report stops on compiler failure and returns a failed result even if an older PDF remains at the output destination.%
+No structural deflection formula was changed in this audit. The legacy composite correction is an applied modelling assumption requiring engineering acceptance. A direct comparison between a raw diagram ordinate and an adjusted design{-}check limit does not establish the status of the adjusted check.%
 
 %
-\section*{Verification}%
-\label{sec:Verification}%
-The complete repository test suite passed with 8 tests. Three focused regression tests cover saved checkbox values and custom labels, failed/missing/zero utilization data, and end{-}diaphragm quantities across supports and girder pairs.%
-
-
-%
-The desktop Design and Generate Report handlers were exercised in a hidden Qt window with real structural analysis, member design, CAD capture, analysis{-}envelope capture and two{-}pass PDF compilation.%
+\section*{Numerical reporting and remaining conditions}%
+\label{sec:Numericalreportingandremainingconditions}%
+Chapter 4 now contains 45 available load{-}case/combination summaries with signed moment and shear demands, physical girder labels and available x locations. End vertical force sums are derived from longitudinal member end forces. They are explicitly labelled with that basis because direct nodal support reactions are absent from the stored dataset. Failed extraction is retained as unavailable instead of silently accumulating a zero.%
 
 
 %
-The resulting PDF has 55 physical pages, 57 longtables and 21 distinct embedded images. Every longtable defines continuation headings. PDF text bounds showed at least 16.88 points of clearance above the footer, with no detected footer overlap. Rendered pages were inspected for CAD views, table layout and chart readability.%
+Chapter 2 identifies initial transverse{-}member sections, while Chapter 5 and the quantity model use final designed sections. Duplicate identifier ranges such as B1M1 to B1M1 are collapsed to the stored identifier. The executive summary lists all six final girder section dimensions including web thickness and reports the governing check separately for each girder.%
 
 
 %
-The regenerated report retains the girder fatigue failure at approximately UR 2.16 and the intermediate{-}stiffener failure. The executive summary and overall design section expose these failures.%
-
-%
-\section*{Reproduction and remaining data gaps}%
-\label{sec:Reproductionandremainingdatagaps}%
-Use environment.yml to create the upstream Osdag environment, install this repository in editable mode, and launch python {-}m osdagbridge.desktop. Run Design with the bridge inputs, then Generate Report with design checks, drawings and quantities selected.%
+Missing inputs are labelled Not provided. Missing quantities are Not calculated. Missing required checks are Not assessed and can produce an Incomplete summary. Valid zeros remain numeric. A valid failed check determines overall failure. The temperature table formats each available temperature with its unit and prints missing values without malformed signs or empty units.%
 
 
 %
-The Windows verification environment used Python 3.12, the osdag 2026.04.0.0 package, VTK 9.4.2, and a local TinyTeX compiler. The packaged Osdag member database was initially empty and was initialized from the SQL distributed with that package for verification.%
+The minimum shade temperature remains missing in the reconstructed case, so thermal loading is unavailable. Chapter 4 explicitly records that generated combination expressions do not prove a missing thermal action was analysed. This input condition requires resolution before using the case as a complete engineering design.%
 
 
 %
-Vehicle totals for Class AA and 70R bogie remain unavailable where the existing backend provides no definition. Centrifugal force and several load{-}result fields also require backend data. The report displays unavailable values without inventing analysis results. Missing optional CAD captures are omitted.%
+The existing modules identify IRC 22:2015 and IRC 112:2020 in report references. The composite implementation imports the legacy class IRC22\_2014 from irc22\_2015.py. This naming discrepancy is documented, with no formula migration. Applied material unit weights are reported from the saved inputs alongside the explicit quantity{-}density basis, rather than implying they equal generic assumptions.%
 
 
 %
-The material take{-}off retains the upstream quantity calculation for existing components. This work adds diaphragm quantities and the requested plots. An independent engineering audit of the structural analysis and quantity algorithms was outside this report{-}generator refactoring.%
+The audited report retains the approximately 2.16 girder fatigue failure and intermediate{-}stiffener leg{-}height failure. Correct physical{-}girder extraction also exposes any additional failing checks reported by the designer. Successful PDF generation is a reporting validation result.%
+
+%
+\section*{Verification and files}%
+\label{sec:Verificationandfiles}%
+Fourteen repository tests pass, including independent final{-}section volume/mass arithmetic, legacy barrier units, skewed longitudinal paths, missing quantities, saved selection flags, deflection failure retention and actual single/multiple{-}page LaTeX compilation.%
+
+
+%
+The desktop Design and Generate Report handlers were exercised with a 25 m span, 6 m carriageway, 14{-}degree skew, Ujjain location, E 350A steel and M40 concrete. Inputs were reconstructed because the original saved input file was unavailable. CAD and analysis figures were captured from this run. The final export was repeated from its captured report payload after presentation{-}only corrections.%
+
+
+%
+The final PDF has 58 physical pages, 57 longtables and 21 distinct embedded images. Text{-}bound inspection found no footer overlap, with a minimum measured clearance of 15.91 points. Numerical pages and charts were visually inspected. Before/after PDFs and this document are stored in docs/report.%
+
+
+%
+Changed areas include reports/chap2.py through chap5.py, chap7.py, chap8.py, executive\_summary.py, styles.py, report\_utils.py and summary\_values.py; boq/boq\_generator.py; plate\_girder/analysis\_results.py, results\_data.py, defaults.py and plategirderbridge.py; the Additional Inputs barrier{-}unit producer; and unit/integration regression tests.%
+
+
+%
+Reproduce in the upstream environment using environment.yml, an editable install and python {-}m osdagbridge.desktop. Enter the bridge inputs, run Design, then Generate Report with loads, analysis, design checks, quantities and drawings enabled. Run python {-}m pytest tests with pdflatex and pdftotext on PATH to include the compiled table regressions.%
 
 %
 \end{document}

@@ -62,7 +62,7 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 % Prevent tables from overflowing past the page bottom:
 % if fewer than 5 baseline-skips remain, break to the next page first.
 \BeforeBeginEnvironment{table}{\needspace{5\baselineskip}}
-\BeforeBeginEnvironment{longtable}{\needspace{5\baselineskip}}
+
 
 \definecolor{osdagGreen}{HTML}{91B014}
 
@@ -144,7 +144,7 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 \author{}
 \date{}
 
-\newcommand{\reporthead}[1]{\hline\rowcolor{osdagGreen!14}#1\\\hline\endfirsthead\hline\rowcolor{osdagGreen!14}#1\\\hline\endhead}
+\newcommand{\reporthead}[1]{\hline\rowcolor{osdagGreen!14}#1\\\hline\endfirsthead\hline\rowcolor{osdagGreen!14}#1\\\hline\endhead\endfoot\endlastfoot}
 \newcommand{\reportrowgap}{3pt}
 \raggedbottom
 \setlength{\abovecaptionskip}{2pt}

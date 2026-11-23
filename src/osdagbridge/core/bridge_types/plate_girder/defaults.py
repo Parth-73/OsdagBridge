@@ -201,7 +201,8 @@ def _update_typical_section_defaults(input_dict: dict) -> None:
     _update(KEY_CB_DENSITY,      RCC_DENSITY)                          # kN/m³
     _update(KEY_CB_WIDTH,        _cb_dims[KEY_CB_WIDTH]  / 1e3)        # mm → m
     _update(KEY_CB_HEIGHT,       _cb_dims[KEY_CB_HEIGHT] / 1e3)        # mm → m
-    _update(KEY_CB_AREA,         _cb_area["barrier_area"])             # mm²
+    _update(KEY_CB_AREA,         _cb_area["barrier_area"] / 1e6)             # m²
+    _update("quantity_model.crash_barrier_area_unit", "m2")
     _update(KEY_CB_LOAD,         _cb_load["total_load_kN_per_m"])      # kN/m
     _update(KEY_CB_POST_SPACING, 2)                                    # m
 
