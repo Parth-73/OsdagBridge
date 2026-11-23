@@ -64,6 +64,24 @@ def governing_check(outputs, check_id, girder=None):
                     continue
                 if check.get("demand_unit", "mm") != check.get("capacity_unit", "mm"):
                     continue
-                if isfinite(float(demand)) and isfinite(float(capacity)) and float(capacity) > 0:
+                try:
+                    demand, capacity = float(demand), float(capacity)
+                except (TypeError, ValueError):
+                    continue
+                if isfinite(demand) and isfinite(capacity) and capacity > 0:
                     candidates.append((float(demand) / float(capacity), float(demand), float(capacity), label, lc))
     return max(candidates, default=None)
+
+
+def transverse_shear_check(outputs):
+    from osdagbridge.core.utils.common import KEY_SD_TS_VL, KEY_SD_TS_VRD
+    result = outputs.get("design_results") or {}
+    demand, capacity = result.get(KEY_SD_TS_VL), result.get(KEY_SD_TS_VRD)
+    if demand is None or capacity is None:
+        return None
+    demand, capacity = float(demand), float(capacity)
+    if not isfinite(demand) or not isfinite(capacity) or capacity <= 0:
+        return None
+    ratio = demand / capacity
+    status = "FAIL" if ratio > 1 or result.get("transverse_shear_ok") is False else "PASS"
+    return demand, capacity, ratio, status

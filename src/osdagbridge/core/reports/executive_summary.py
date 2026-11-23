@@ -165,7 +165,7 @@ This section provides a concise summary of the bridge design, key inputs, govern
 
 \section*{Design Assumptions and Limitations}
 \addcontentsline{toc}{section}{Design Assumptions and Limitations}
-\label{sec:assumptions}
+\label{sec:summary-assumptions}
 
 \begin{itemize}
 \item Additional inputs not provided by the user were assumed by software per IRC/IS code defaults or practical consideration.

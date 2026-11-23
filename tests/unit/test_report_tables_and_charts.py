@@ -98,3 +98,64 @@ def test_barrier_area_legacy_units_and_missing_geometry():
     assert float(result["crash_barrier_vol_total"]) == 15.11
     del inputs["typical_section.crash_barrier.load"]
     assert calculate_material_quantities(inputs, {})["crash_barrier_vol_total"] == "Not calculated"
+
+
+def test_transverse_shear_and_selected_stiffener_are_rendered_consistently():
+    from osdagbridge.core.reports.report_generator import ReportDataBridge
+    from osdagbridge.core.reports.chap5 import ch5_design_checks
+    from osdagbridge.core.reports.summary_values import transverse_shear_check
+    outputs = {keys.KEY_SD_STIFF_INT_SPACING: 2030,
+               "design_results": {keys.KEY_SD_TS_VL: 18, keys.KEY_SD_TS_VRD: 100,
+                                  "transverse_shear_ok": True}}
+    assert transverse_shear_check(outputs) == (18, 100, .18, "PASS")
+    tex = ch5_design_checks([], ReportDataBridge(outputs, {}, None))
+    assert "Selected Intermediate Stiffener Spacing (mm)" in tex
+    assert "2030" in tex
+    assert "18.00 kN/m" in tex and "100.00 kN/m" in tex and "0.18 PASS" in tex
+    assert "Steel contribution" in tex and "Concrete contribution" in tex
+    assert r"\footnotesize\makecell{$Q_u" not in tex
+    outputs["design_results"]["transverse_shear_ok"] = False
+    assert transverse_shear_check(outputs)[-1] == "FAIL"
+    outputs["design_results"][keys.KEY_SD_TS_VRD] = None
+    assert transverse_shear_check(outputs) is None
+
+
+def test_deflection_report_uses_same_case_stiffness_trace():
+    from osdagbridge.core.reports.chap4 import ch4_analysis
+    from osdagbridge.core.reports.report_generator import ReportDataBridge
+    ratio = 2.5319585508520372
+    values = {"Dy_mm": 35.36, "deflection_stiffness_ratio": ratio,
+              "deflection_steel_I_mm4": 8770693002.666668,
+              "deflection_composite_I_mm4": 22207031145,
+              "checks": [{"id": 13, "demand": round(35.36 / ratio, 2), "capacity": 31.25}]}
+    outputs = {"design_results": {"per_girder": {"G2": {"per_lc": {"Vehicle": values}}}}}
+    tex = ch4_analysis({}, {}, ReportDataBridge(outputs, {keys.KEY_SPAN: 25}, None), 25)
+    assert "35.36000 mm" in tex
+    assert "2.531959" in tex
+    assert "design Dy=raw Dy/r" in tex
+    assert "13.970 mm" in tex
+
+
+def test_summary_retains_failure_and_marks_unassessed_members():
+    from osdagbridge.core.reports.executive_summary import executive_summary
+    inputs = {keys.KEY_TS_NO_OF_GIRDERS: 1}
+    assert "Incomplete" in executive_summary(inputs, {}, {})
+    outputs = {"design_results": {"per_girder": {"G1": {"checks": [
+        {"name": "Fatigue", "dcr": 2.16, "status": "FAIL"}
+    ]}}}}
+    text = executive_summary(inputs, outputs, {})
+    assert "Fail (Plate girders)" in text
+    assert "2.16" in text
+    assert "Not assessed" in text
+
+
+def test_shear_table_preserves_buckling_failure_when_check_ids_repeat():
+    from osdagbridge.core.reports.report_generator import ReportDataBridge
+    from osdagbridge.core.reports.chap5 import ch5_design_checks
+    outputs = {"design_results": {"per_girder": {"G1": {"checks": [
+        {"check_id": 2, "demand": 489, "capacity": 1990, "dcr": .25, "status": "PASS"},
+        {"check_id": 2, "demand": 489, "capacity": 443, "dcr": 1.10, "status": "FAIL"},
+    ]}}}}
+    tex = ch5_design_checks([], ReportDataBridge(outputs, {keys.KEY_TS_NO_OF_GIRDERS: 1}, None))
+    assert "1.10" in tex
+    assert "FAIL" in tex

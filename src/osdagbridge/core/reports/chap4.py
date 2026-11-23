@@ -94,15 +94,39 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
         "These raw values are reported separately from the adjusted serviceability check. "
         "The 1.0 LL case includes the dynamic allowance applied by the live-load generator."
     )
+    trace_lines = []
+    for check in (live_check, total_check):
+        if check is not None:
+            _, _, _, girder, lc = check
+            values = bridge.output_dict["design_results"]["per_girder"][girder]["per_lc"][lc]
+            ratio = values.get("deflection_stiffness_ratio")
+            if ratio is not None:
+                trace_lines.append(
+                    f"{girder}, {lc}: raw Dy={values['Dy_mm']:.5f} mm, "
+                    f"Isteel={values['deflection_steel_I_mm4']:.3f} mm4, "
+                    f"Icomp={values['deflection_composite_I_mm4']:.3f} mm4, "
+                    f"r=max(Icomp/Isteel,1)={ratio:.6f}; design Dy=raw Dy/r."
+                )
+    basis_note += " " + " ".join(trace_lines)
     thermal_note = ""
     if not any(" TL" in str(lc) for lc in all_lcs):
         thermal_note = "No standalone temperature load result is available. The generated combination definitions do not establish that a missing thermal action was analysed."
+    expression_groups = {}
+    for lc in all_lcs:
+        if ":" in lc:
+            expression_groups.setdefault(lc.split(":", 1)[1].strip(), []).append(lc.split(":", 1)[0])
+    matching = [", ".join(labels) for labels in expression_groups.values() if len(labels) > 1]
+    combination_note = (
+        "Combination labels list only the actions actually added to the solver. "
+        "Unavailable actions are omitted, so identical applied expressions can legitimately give identical responses. "
+        + ("Matching applied expressions occur for " + "; ".join(matching) + "." if matching else "")
+    )
     return r"""
 \chapter{Analysis Results}
 
 A grillage model was used for structural analysis. The deck is idealized as a grid of elastic beam elements --- longitudinal members represent the composite steel girders with effective slab, and transverse members represent the slab or cross frames. This section summarizes the critical output from that analysis.
 
-\noindent """ + _tex(thermal_note) + r"""
+\noindent """ + _tex(thermal_note + " " + combination_note) + r"""
 \vspace{1em}
 \begingroup
 \footnotesize
@@ -111,10 +135,10 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 
 \caption{\textbf{Summary of Maximum Demands}}\\
 \hline
-\multirow{2}{*}{\makecell{\textbf{Load}\\\textbf{Case/}\\\textbf{Comb.}}}
+\textbf{Load case / combination}
 & \multicolumn{3}{c|}{\textbf{Bending Moment}}
 & \multicolumn{3}{c|}{\textbf{Shear Force}}
-& \multicolumn{2}{c|}{\textbf{End Vertical Forces}}\\
+& \multicolumn{2}{c|}{\makecell{\textbf{End vertical}\\\textbf{force sums (kN)}}}\\
 \cline{2-9}
 
 & \makecell{\textbf{Max}\\\textbf{(kNm)}}
@@ -123,16 +147,16 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 & \makecell{\textbf{Max}\\\textbf{(kN)}}
 & \textbf{Girder}
 & \makecell{\textbf{Loc.}\\\textbf{(m)}}
-& \makecell{\textbf{Left}}
-& \makecell{\textbf{Right }}\\
+& \makecell{\textbf{Start}}
+& \makecell{\textbf{Finish}}\\
 \hline
 \endfirsthead
 
 \hline
-\multirow{2}{*}{\makecell{\textbf{Load}\\\textbf{Case/}\\\textbf{Comb.}}}
+\textbf{Load case / combination}
 & \multicolumn{3}{c|}{\textbf{Bending Moment}}
 & \multicolumn{3}{c|}{\textbf{Shear Force}}
-& \multicolumn{2}{c|}{\textbf{End Vertical Forces}}\\
+& \multicolumn{2}{c|}{\makecell{\textbf{End vertical}\\\textbf{force sums (kN)}}}\\
 \cline{2-9}
 
 & \makecell{\textbf{Max}\\\textbf{(kNm)}}
@@ -141,8 +165,8 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 & \makecell{\textbf{Max}\\\textbf{(kN)}}
 & \textbf{Girder}
 & \makecell{\textbf{Loc.}\\\textbf{(m)}}
-& \makecell{\textbf{Left}}
-& \makecell{\textbf{Right}}\\
+& \makecell{\textbf{Start}}
+& \makecell{\textbf{Finish}}\\
 \hline
 \endhead
 
@@ -152,15 +176,16 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \end{longtable}
 \endgroup
 
-\noindent End-force sums are derived from the first and last longitudinal member vertical forces. Direct nodal support reactions are not stored in the analysis dataset.
+\noindent End-force sums are derived from the first and last longitudinal member vertical forces. Direct nodal support reactions are not stored in the analysis dataset. Global x increases along the span, y is vertical, and z is transverse. End sums use Vi at the start and minus Vj at the finish, divided by 1000 to obtain kN. Locations are global x coordinates in metres.
 \vspace{1em}
 \begin{longtable}{\ReactionsAtSupportsColumns}
 \caption{\textbf{Support-end Vertical Force Sums}}\\
-\reporthead{\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)}}
+\reporthead{\textbf{Load Case} & \textbf{Start-end sum (kN)} & \textbf{Finish-end sum (kN)}}
 """ + reaction_rows + r"""
 \end{longtable}
 
 \vspace{1em}
+\Needspace{14\baselineskip}
 \begin{longtable}{\DeflectionSummaryLiveLoadTotalColumns}
 \caption{\textbf{Deflection Summary (Live Load \& Total Load)}}\\
 \reporthead{\textbf{parameter} & \textbf{value}}

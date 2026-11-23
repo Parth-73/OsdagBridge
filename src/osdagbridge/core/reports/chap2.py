@@ -106,7 +106,7 @@ This section documents all inputs provided to OsdagBridge. User-provided inputs 
 \hline
 \textnormal{Basic Wind Speed (IRC 6)} & """ + (_render_value(input_dict,'wind_speed', ' m/s')) + r""" \\
 \hline
-\textnormal{Shade Temp. Max / Min (IRC 6)} & """ + (_render_value(input_dict,'shade_temp_max','')) + r""" °C / """ + (_render_value(input_dict,'shade_temp_min','')) + r""" °C \\
+\textnormal{Shade Temp. Max / Min (IRC 6)} & """ + (_render_value(input_dict,'shade_temp_max',r' $^\circ$C')) + r""" / """ + (_render_value(input_dict,'shade_temp_min',r' $^\circ$C')) + r""" \\
 \hline
 \end{longtable}
 
@@ -309,7 +309,7 @@ def _girder_tables(input_dict, n_girders):
 \vspace{4pt}
 \begin{longtable}{\GirderRestraintAndStiffenerDetailsColumns}
 \caption{\textbf{Girder Restraint and Stiffener Details}}\\
-\reporthead{\textbf{Girder} & \textbf{Torsional / Warping Restraint} & \textbf{Web Philosophy} & \textbf{Intermediate Stiffeners} & \textbf{Longitudinal Stiffeners} & \textbf{Bearing Stiffener}}
+\reporthead{\textbf{Girder} & \textbf{Torsional / Warping Restraint} & \textbf{Web Philosophy} & \textbf{Intermediate Stiffeners} & \textbf{Long. Stiffeners} & \textbf{Bearing Stiffener}}
 
 """
             + rst_rows
@@ -386,7 +386,7 @@ def _shear_connector_table(input_dict, output_dict=None):
     return r"""
 \label{subsec:shear-connectors}
 
-\vspace{2.2em}
+\vspace{0.2em}
 
 \vspace{0.4em}
 \begin{longtable}{\TypicalSectionDetailsColumns}
@@ -409,7 +409,7 @@ def _safety_factors_table(input_dict):
     return r"""
 \label{subsec:safety-factors}
 
-\vspace{2.2em}
+\vspace{0.2em}
 
 \vspace{0.3em}
 \noindent\textit{Note: All values are per IRC 22 Table 1 unless user-modified.}

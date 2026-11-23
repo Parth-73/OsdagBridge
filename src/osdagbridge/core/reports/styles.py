@@ -114,7 +114,7 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 \newcolumntype{\ReinforcementDetailingSummaryDeckSlabColumns}{|L{5.5cm}|>{\centering\arraybackslash}p{4.1cm}|>{\centering\arraybackslash}p{4.1cm}|C{1.8cm}|}
 \newcolumntype{\CrossBracingConnectionAndSectionColumns}{|C{2.0cm}|L{2.0cm}|L{2.2cm}|C{2.5cm}|C{2.0cm}|C{2.0cm}|}
 \newcolumntype{\CrossBracingSlendernessRatioCheckColumns}{|C{2.2cm}|L{2.2cm}|L{2.5cm}|C{2.5cm}|C{2.5cm}|>{\centering\arraybackslash}p{3.6cm}|}
-\newcolumntype{\CrossBracingDesignCapacitySummaryColumns}{|C{2.0cm}|L{1.8cm}|C{2.2cm}|C{3.0cm}|C{1.8cm}|C{1.8cm}|C{1.2cm}|C{1.8cm}|}
+\newcolumntype{\CrossBracingDesignCapacitySummaryColumns}{|C{2.0cm}|L{1.8cm}|C{2.2cm}|C{3.0cm}|C{1.8cm}|C{1.8cm}|C{1.2cm}|C{1.6cm}|}
 \newcolumntype{\OverallDesignCheckSummaryAllColumns}{|C{3.4cm}|L{4.5cm}|C{2.3cm}|C{2.3cm}|>{\centering\arraybackslash}p{1.6cm}|}
 \newcolumntype{\BillOfMaterialsColumns}{|C{1.0cm}|L{3.8cm}|C{2.6cm}|C{1.8cm}|C{1.8cm}|C{1.8cm}|C{1.8cm}|}
 \newcolumntype{\IrcCodesColumns}{|c|c|p{13cm}|}
@@ -125,11 +125,11 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 \newcolumntype{\AnalysisDemandColumns}{|
 >{\centering\arraybackslash}p{3.1cm}|
 >{\centering\arraybackslash}p{1.7cm}|
->{\centering\arraybackslash}p{1.2cm}|
 >{\centering\arraybackslash}p{1.3cm}|
+>{\centering\arraybackslash}p{1.2cm}|
 >{\centering\arraybackslash}p{1.7cm}|
->{\centering\arraybackslash}p{1.2cm}|
 >{\centering\arraybackslash}p{1.3cm}|
+>{\centering\arraybackslash}p{1.2cm}|
 >{\centering\arraybackslash}p{1.6cm}|
 >{\centering\arraybackslash}p{1.6cm}|}
 % Software-default asterisk
@@ -145,8 +145,10 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 \date{}
 
 \newcommand{\reporthead}[1]{\hline\rowcolor{osdagGreen!14}#1\\\hline\endfirsthead\hline\rowcolor{osdagGreen!14}#1\\\hline\endhead\endfoot\endlastfoot}
+\AtBeginEnvironment{longtable}{\small}
 \newcommand{\reportrowgap}{3pt}
 \raggedbottom
+\setlength{\emergencystretch}{2em}
 \setlength{\abovecaptionskip}{2pt}
 \setlength{\belowcaptionskip}{2pt}
 \begin{document}

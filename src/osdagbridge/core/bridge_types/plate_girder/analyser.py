@@ -1503,7 +1503,7 @@ class BridgeGrillageModel:
         WL = og.create_load_case(name=f"{partial_safety_factor} WL")
         for sub_lc in (WL_T, WL_L, WL_V):
             for entry in sub_lc.load_groups:
-                WL.add_load(entry["load"])
+                WL.add_load(entry["load"], load_factor=entry.get("factor", 1))
         model.add_load_case(WL, load_factor=partial_safety_factor)
         self.wind_load_case = WL
 
@@ -1543,7 +1543,7 @@ class BridgeGrillageModel:
             lc = getattr(self, attr, None)
             if lc is not None:
                 for entry in lc.load_groups:
-                    DL_combined.add_load(entry["load"])
+                    DL_combined.add_load(entry["load"], load_factor=entry.get("factor", 1))
                 added = True
 
         if not added:
@@ -1591,7 +1591,7 @@ class BridgeGrillageModel:
             lc = getattr(self, attr, None)
             if lc is not None:
                 for entry in lc.load_groups:
-                    SIDL_combined.add_load(entry["load"])
+                    SIDL_combined.add_load(entry["load"], load_factor=entry.get("factor", 1))
                 added = True
 
         if not added:
@@ -2024,7 +2024,7 @@ class BridgeGrillageModel:
         # Build LL load case from the governing case's loads
         LL = og.create_load_case(name=f"{partial_safety_factor} LL")
         for entry in target_lc_obj.load_groups:
-            LL.add_load(entry["load"])
+            LL.add_load(entry["load"], load_factor=entry.get("factor", 1))
 
         model.add_load_case(LL, load_factor=partial_safety_factor)
         self.ll_load_case = LL
@@ -2085,7 +2085,7 @@ class BridgeGrillageModel:
 
         if dl_lc is not None:
             for entry in dl_lc.load_groups:
-                combo.add_load(entry["load"], load_factor=float(dl_factor))
+                combo.add_load(entry["load"], load_factor=float(dl_factor) * float(entry.get("factor", 1)))
             n += len(dl_lc.load_groups)
         else:
             warnings.warn(
@@ -2095,7 +2095,7 @@ class BridgeGrillageModel:
 
         if ll_lc is not None:
             for entry in ll_lc.load_groups:
-                combo.add_load(entry["load"], load_factor=float(ll_factor))
+                combo.add_load(entry["load"], load_factor=float(ll_factor) * float(entry.get("factor", 1)))
             n += len(ll_lc.load_groups)
         else:
             warnings.warn(
@@ -2345,7 +2345,7 @@ class BridgeGrillageModel:
             if src_lc is None or factor is None or factor == 0:
                 return 0
             for entry in src_lc.load_groups:
-                target_lc.add_load(entry["load"], load_factor=float(factor))
+                target_lc.add_load(entry["load"], load_factor=float(factor) * float(entry.get("factor", 1)))
             return len(src_lc.load_groups)
 
         counters: dict = {}
@@ -2540,7 +2540,7 @@ class BridgeGrillageModel:
             if src_lc is None or factor is None or factor == 0:
                 return 0
             for entry in src_lc.load_groups:
-                target_lc.add_load(entry["load"], load_factor=float(factor))
+                target_lc.add_load(entry["load"], load_factor=float(factor) * float(entry.get("factor", 1)))
             return len(src_lc.load_groups)
 
         counters: dict = {}

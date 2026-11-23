@@ -589,6 +589,9 @@ class DemandEnvelope:
     Dz_mm: float = 0.0            # transverse displacement
     # Semantic envelope fields
     M_construction_kNm: float = 0.0
+    deflection_stiffness_ratio: float = 1.0
+    deflection_steel_I_mm4: float = 0.0
+    deflection_composite_I_mm4: float = 0.0
     delta_live_mm: float = 0.0
     delta_total_mm: float = 0.0
     stress_range_MPa: float = 0.0
@@ -3094,6 +3097,9 @@ def _extract_demands_from_analysis_results(
                 Dx_mm=round(Dx, 3),    # axial displacement
                 Dy_mm=round(Dy, 3),    # vertical displacement
                 Dz_mm=round(Dz, 3),    # transverse displacement
+                deflection_stiffness_ratio=stiffness_ratio,
+                deflection_steel_I_mm4=sec.Iz_steel,
+                deflection_composite_I_mm4=props[KEY_COMP_I],
                 delta_live_mm=_d_live,
                 delta_total_mm=_d_total,
                 M_sls_kNm=_m_sls,
@@ -3140,6 +3146,9 @@ def _compute_per_lc_dcr(
             "Vz_kN"           : lc_d.Vz_kN,
             "Dx_mm"           : lc_d.Dx_mm,
             "Dy_mm"           : lc_d.Dy_mm,
+            "deflection_stiffness_ratio": lc_d.deflection_stiffness_ratio,
+            "deflection_steel_I_mm4": lc_d.deflection_steel_I_mm4,
+            "deflection_composite_I_mm4": lc_d.deflection_composite_I_mm4,
             "Dz_mm"           : lc_d.Dz_mm,
             "lc_type"         : lc_d.lc_type,
             "M_sls_kNm"       : lc_d.M_sls_kNm,

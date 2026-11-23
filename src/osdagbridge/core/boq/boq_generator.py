@@ -169,7 +169,7 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
             girder_vol = girder_area * span
             total_volume = n_girders * girder_vol
             quantities.update({
-                "steel_girders_vol_formula": "$" + f"{girder_area:.8f} \\mathrm{{m}}^2 \\times {span:g} \\mathrm{{m}}$",
+                "steel_girders_vol_formula": r"\makecell{$" + f"{girder_area:.8f}" + r"\,\mathrm{m}^2$\\" + r"$\times " + f"{span:g}" + r"\,\mathrm{m}$}",
                 "steel_girders_qty": str(n_girders),
                 "steel_girders_vol_total": f"{total_volume:.5f}",
                 "steel_girders_wt_single": f"{girder_vol * 7.85:.4f}",

@@ -175,6 +175,7 @@ def title_page(m, osdag_logo, org_logo):
 """
 
     return r"""
+\hypersetup{pageanchor=false}
 \begin{titlepage}
 \thispagestyle{firstpage}
 \centering
@@ -205,6 +206,7 @@ def title_page(m, osdag_logo, org_logo):
 \hline
 \end{tabular}
 \end{titlepage}
+\hypersetup{pageanchor=true}
 """
 
 

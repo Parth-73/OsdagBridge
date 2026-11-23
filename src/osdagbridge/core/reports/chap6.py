@@ -36,7 +36,7 @@ def ch6_drawings(fig_paths):
             return (r'\begin{figure}[H]' + '\n'
                     r'\centering' + '\n'
                     r'\vspace{4pt}' + '\n'
-                    r'\includegraphics[width=0.85\textwidth]{' + p + '}\n'
+                    r'\includegraphics[width=0.85\textwidth,height=0.55\textheight,keepaspectratio]{' + p + '}\n'
                     r'\caption{' + title + '}\n'
                     + label_tex
                     + r'\end{figure}' + '\n'

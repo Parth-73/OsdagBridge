@@ -43,8 +43,8 @@ def ch8_design_log(log_entries: List[str], input_dict: dict) -> str:
         + r". These saved material inputs govern loading. Quantity mass uses 7850 kg/m$^3$ for steel and 2500 kg/m$^3$ for concrete."
         + r" Girder quantities use final designed plate geometry and exclude unmodelled stiffener, weld and connection material."
         + r" Reinforcement quantity requires a bar schedule including layer extents and anchorage and is marked Not calculated."
-        + r" The implementation imports IRC22\_2014 from irc22\_2015.py. This legacy class name is retained."
-        + r" Chapter references describe the editions identified by the existing calculation modules. No code-edition formula migration was performed."
+        + r" The implementation imports IRC22\_2014 from irc22\_2015.py. Its module docstring and clause docstrings explicitly identify IRC 22:2014, despite the filename. Report citations identify this implemented basis."
+        + r" The deck imports IRC112\_2019 from irc112\_2019.py, whose module, class and equation docstrings explicitly identify IRC 112:2020. The older class name does not establish a 2011 implementation. No engineering code migration was performed."
     )
     return _ch8_assumptions(is_custom) + applied
 
@@ -73,7 +73,7 @@ IRC 5 & 2015 & General Features of Design - carriageway widths, kerb, footpath d
 \hline
 IRC 6 & 2017 & Loads and Load Combinations - dead load, live load, impact, wind, temperature, etc. \\ 
 \hline
-IRC 22 & 2015 & Composite Construction (LS) - Composite section properties, ULS/SLS design, shear connectors \\ 
+IRC 22 & 2014 & Composite Construction (LS) - Composite section properties, ULS/SLS design, shear connectors \\
 \hline
 IRC 24 & 2010 & Steel Road Bridges (LS) - Stiffener design, skew angle limits, diaphragm requirements \\ 
 \hline
@@ -115,7 +115,7 @@ IS 2062 & 2011 & Structural steel - yield and ultimate strength by grade \\
 \textbf{Composite Action}
 
 \begin{itemize}
-    \item Full shear connection is assumed at ULS with headed stud connectors designed per IRC 22:2015 Cl.606.
+    \item Full shear connection is assumed at ULS with headed stud connectors designed per IRC 22:2014 Cl.606.
     \item Short-term composite section properties (modular ratio $n = E_s/E_{cm}$) are used for ULS checks.
     \item Long-term composite section properties (with creep-adjusted modular ratio) are used for SLS deflection and crack-width checks.
     \item Pre-composite stage: the steel girder alone resists all construction loads prior to concrete gaining strength.
@@ -125,7 +125,7 @@ IS 2062 & 2011 & Structural steel - yield and ultimate strength by grade \\
 
     if not is_custom:
         assumptions.append(r"""
-\textbf{Material Properties (IRC 22:2015 Annex III)}
+\textbf{Material Properties (IRC 22:2014 Annex III)}
 
 \begin{itemize}
 \item Steel: $E_s = 200{,}000 \, \text{MPa}, \ G_s = 80{,}000 \, \text{MPa}, \ \nu = 0.30, \ \alpha = 11.7 \times 10^{-6}/^\circ\mathrm{C}$ (grade-independent).
@@ -133,7 +133,7 @@ IS 2062 & 2011 & Structural steel - yield and ultimate strength by grade \\
 \item Default reinforcement grade: Fe500.
 \end{itemize}
 
-\textbf{Partial Safety Factors (IRC 22:2015 Cl.601.4)}
+\textbf{Partial Safety Factors (IRC 22:2014 Cl.601.4)}
 
 \begin{itemize}
 \item $\gamma_{m0}$ (steel yield, ULS) = 1.10
@@ -155,7 +155,7 @@ IS 2062 & 2011 & Structural steel - yield and ultimate strength by grade \\
 \textbf{Serviceability Limits}
 
 \begin{itemize}
-\item Deflection limits (IRC 22:2015 Cl.604.3.2): live load + impact $\leq L/800$; total $\leq L/600$.
+\item Deflection limits (IRC 22:2014 Cl.604.3.2): live load + impact $\leq L/800$; total $\leq L/600$.
 \item SLS stress limits: concrete $\sigma_c \leq 0.48 f_{ck}$; rebar $\sigma_s \leq 0.80 f_{yk}$; steel $f_e \leq 0.9 f_y$.
 \item Permissible crack width: $w_k \leq 0.3 \ \text{mm}$ (bridge deck, exposure class XS2/XD2 per IRC 112:2020 Cl.12.3.2).
 \end{itemize}
@@ -163,14 +163,14 @@ IS 2062 & 2011 & Structural steel - yield and ultimate strength by grade \\
 \textbf{Fatigue}
 
 \begin{itemize}
-\item Reference fatigue life: $N_{sc} = 2 \times 10^6$ cycles (IRC 22:2015 Cl.605).
+\item Reference fatigue life: $N_{sc} = 2 \times 10^6$ cycles (IRC 22:2014 Cl.605).
 \item Constant stress range is assumed. A thickness correction factor $\mu_r$ is applied for plate thickness $> 25 \ \text{mm}$.
 \end{itemize}
 
 \textbf{Stiffener Design}
 
 \begin{itemize}
-\item Intermediate transverse stiffener and bearing stiffener design follows IS 800:2007 Cl.8.7.2/8.7.3 and IRC 24:2010 Cl.509.7.2/509.7.3.
+\item Intermediate transverse stiffener and bearing stiffener design follows IS 800:2007 Cl.8.7.2 / 8.7.3 and IRC 24:2010 Cl.509.7.2 / 509.7.3.
 \end{itemize}
 """)
 

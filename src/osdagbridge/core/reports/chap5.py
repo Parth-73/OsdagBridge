@@ -146,7 +146,7 @@ from osdagbridge.core.reports.report_utils import _tex, _render_value, get_girde
 if TYPE_CHECKING:
     pass
 from .charts import bar_chart
-from .summary_values import component_ratios, governing_check
+from .summary_values import component_ratios, governing_check, transverse_shear_check
 
 
 def transverse_tables(data):
@@ -331,6 +331,10 @@ def ch5_design_checks(checks_data, bridge, chart_dir=None) -> str:
         )
     t52_content = "\n".join(t52_rows)
 
+    def member_check(label, identifier):
+        result = (bridge.output_dict.get("design_results") or {}).get("per_girder", {}).get(label, {})
+        return max((check for check in result.get("checks", []) if check.get("check_id") == identifier), key=lambda check: float(check.get("dcr") or 0), default={})
+
     # Generate Table 5.3 rows
     # Flexure UR is stored as a percent (cat_urs × 100); show as a ratio (÷100,
     # 2 dp) and PASS when ≤ 1.0.
@@ -343,10 +347,13 @@ def ch5_design_checks(checks_data, bridge, chart_dir=None) -> str:
         _flex_status = "---"
     t53_rows = []
     for lbl, _ in girder_entries:
+        check = member_check(lbl, 1)
+        _flex_ur_str = f"{check['dcr']:.2f}" if check.get("dcr") is not None else "Not assessed"
+        _flex_status = _tex(check.get("status", "Not assessed"))
         t53_rows.append(
-            r"\multirow[t]{3}{*}{\makecell{" + lbl + r"""}} & Applied Moment, $M_u$ & Governing LC (ULS) & """ + _render_value(bridge.output_dict, KEY_SD_MU_APPLIED, " kN-m") + r""" & --- \\[\reportrowgap]
+            r"\multirow[t]{3}{*}{\makecell{" + lbl + r"""}} & Applied Moment, $M_u$ & Governing LC (ULS) & """ + _render_value(check, "demand", " kN-m") + r""" & --- \\[\reportrowgap]
 \cline{2-5}
- & Design Moment Capacity, $M_d$ & IRC 22 Cl. 603.3.1 & """ + _render_value(bridge.output_dict, KEY_SD_MD_CAPACITY, " kN-m") + r""" & --- \\[\reportrowgap]
+ & Design Moment Capacity, $M_d$ & IRC 22 Cl. 603.3.1 & """ + _render_value(check, "capacity", " kN-m") + r""" & --- \\[\reportrowgap]
 \cline{2-5}
  & Utilization Ratio, $M_u / M_d$ & $M_u / M_d$ & """ + _flex_ur_str + r""" & """ + _flex_status + r""" \\[\reportrowgap]
 \hline"""
@@ -365,8 +372,11 @@ def ch5_design_checks(checks_data, bridge, chart_dir=None) -> str:
         _shear_status = "---"
     t54_rows = []
     for lbl, _ in girder_entries:
+        check = member_check(lbl, 2)
+        _shear_ur_str = f"{check['dcr']:.2f}" if check.get("dcr") is not None else "Not assessed"
+        _shear_status = _tex(check.get("status", "Not assessed"))
         t54_rows.append(
-            r"\multirow[t]{8}{*}{\makecell{" + lbl + r"""}} & Applied Shear, $V_u$ & Governing LC (ULS) & """ + _render_value(bridge.output_dict, KEY_SD_SHEAR_VU, " kN") + r""" & --- \\[\reportrowgap]
+            r"\multirow[t]{8}{*}{\makecell{" + lbl + r"""}} & Applied Shear, $V_u$ & Governing LC (ULS) & """ + _render_value(check, "demand", " kN") + r""" & --- \\[\reportrowgap]
 \cline{2-5}
  & Shear Area, $A_v$ & $d_w \times t_w$ & """ + _render_value(bridge.output_dict, KEY_SD_SHEAR_AV, " mm$^2$") + r""" & --- \\[\reportrowgap]
 \cline{2-5}
@@ -458,7 +468,7 @@ def ch5_design_checks(checks_data, bridge, chart_dir=None) -> str:
 \cline{2-3}
  & \textnormal{Intermediate Stiffener Thickness (mm)} & """ + _render_value(bridge.output_dict, KEY_SD_STIFF_INT_THICK) + r""" \\[\reportrowgap]
 \cline{2-3}
- & \textnormal{Intermediate Stiffener Spacing (mm)} & """ + _render_value(bridge.output_dict, KEY_SD_STIFF_INT_SPACING) + r""" \\[\reportrowgap]
+ & \textnormal{Selected Intermediate Stiffener Spacing (mm)} & """ + _render_value(bridge.output_dict, KEY_SD_STIFF_INT_SPACING) + r""" \\[\reportrowgap]
 \cline{2-3}
  & \textnormal{End Panel Stiffener Thickness (mm)} & """ + _render_value(bridge.output_dict, KEY_SD_STIFF_END_THICK) + r""" \\[\reportrowgap]
 \cline{2-3}
@@ -715,12 +725,14 @@ def ch5_design_checks(checks_data, bridge, chart_dir=None) -> str:
         return (s + " kN") if s else ""
 
     t514_content = (
-        r"Design Resistance, $Q_u$ & \footnotesize\makecell{$Q_u=\min(Q_{u,s},\,Q_{u,c})$\\[3pt]$Q_{u,s}=\dfrac{0.8\,f_u\,(\pi d^2/4)}{\gamma_v}$\\[3pt]$Q_{u,c}=\dfrac{0.29\,\alpha\,d^2\sqrt{f_{ck}\,E_{cm}}}{\gamma_v}$} & "
-        + _kn(_dr_sc.get(KEY_SD_SC_Qu_kN)) + r""" & IRC 22 Cl. 606.3.1 (Eq. 6.1) \\[\reportrowgap]
-\hline
-Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
-        + _kn(_dr_sc.get(KEY_SD_SC_Qr_kN)) + r""" & IRC 22 Cl. 606.3.2 (Table 8) \\[\reportrowgap]
-\hline"""
+        r"Design resistance, $Q_u$ & $Q_u=\min(Q_{u,s},Q_{u,c})$ & "
+        + _kn(_dr_sc.get(KEY_SD_SC_Qu_kN))
+        + r" & IRC 22 Cl. 606.3.1 \\[\reportrowgap]\hline" + "\n"
+        + r"Steel contribution & $\displaystyle Q_{u,s}=\frac{0.8f_u(\pi d^2/4)}{\gamma_v}$ & --- & Eq. 6.1 \\[\reportrowgap]\hline" + "\n"
+        + r"Concrete contribution & $\displaystyle Q_{u,c}=\frac{0.29\alpha d^2\sqrt{f_{ck}E_{cm}}}{\gamma_v}$ & --- & Eq. 6.1 \\[\reportrowgap]\hline" + "\n"
+        + r"Fatigue resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & "
+        + _kn(_dr_sc.get(KEY_SD_SC_Qr_kN))
+        + r" & IRC 22 Cl. 606.3.2 \\[\reportrowgap]\hline"
     )
 
     # ── Table 5.15: Shear Connector Spacing (bridge-level) ───────────────────
@@ -757,22 +769,13 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
         s = _dfmt(v, nd=2)
         return (s + " kN/m") if s else ""
 
-    _ts_vl  = _dr_sc.get(KEY_SD_TS_VL)
-    _ts_vrd = _dr_sc.get(KEY_SD_TS_VRD)
-    if _ts_vl is not None and _ts_vrd is not None:
-        try:
-            _ts_vl_f = float(_ts_vl)
-            _ts_vrd_f = float(_ts_vrd)
-            if _ts_vrd_f > 0.0:
-                _ts_ur_str = f"{_ts_vl_f / _ts_vrd_f:.2f}"
-            else:
-                _ts_ur_str = "---"
-        except (TypeError, ValueError):
-            _ts_ur_str = "---"
+    shear_check = transverse_shear_check(bridge.output_dict)
+    if shear_check is None:
+        _ts_vl = _ts_vrd = None
+        _ts_ur_str = _ts_status = "Not assessed"
     else:
-        _ts_ur_str = "---"
-    _ts_ok = _dr_sc.get("transverse_shear_ok")
-    _ts_status = (r"\textcolor{red}{FAIL}" if _ts_ok is False else "PASS") if _ts_ok is not None else "---"
+        _ts_vl, _ts_vrd, ratio, _ts_status = shear_check
+        _ts_ur_str = f"{ratio:.2f}"
 
     _ast_req  = _dr_sc.get("Ast_required_cm2_per_m")
     # Provided transverse steel = the deck's main (bottom + top) bars, which run
@@ -1059,7 +1062,7 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
         _row522(r"Girder --- Deflection",         _dcr_row({13, 14}, fallback_unit="mm")),
         _row522(r"Girder --- Stress",             _dcr_row({11}, fallback_unit="MPa")),
         _row522(r"Girder --- Fatigue",            _dcr_row({8, 9}, fallback_unit="MPa")),
-        _row522(r"Transverse Shear (slab)",       _dcr_row({16})),
+        _row522(r"Transverse Shear (slab)", ("Bridge transverse shear", _knm(_ts_vl), _knm(_ts_vrd), _ts_ur_str + " " + _ts_status)),
         _row522(r"Crack Width (slab)",            _crack_cells),
         _row522(r"Deck --- Flexure (sagging)",    _deck_row(KEY_DD_M_ULS_SAG, KEY_DD_MU_BOT, "kN-m/m")),
         _row522(r"Deck --- Flexure (hogging)",    _deck_row(KEY_DD_M_ULS_HOG, KEY_DD_MU_TOP, "kN-m/m")),
@@ -1212,7 +1215,7 @@ This section presents all structural design checks performed by OsdagBridge. For
 \label{sec:deck-design}
 % ===========================
 
-The reinforced concrete deck slab is designed per IRC~112:2011 (flexure, shear, crack width) and IRC~22:2014 (composite construction). Wheel loads are distributed using Pigeaud's method. The deck is checked for flexure in the transverse and longitudinal directions, punching shear, one-way (beam) shear, crack width, and reinforcement detailing.
+The reinforced concrete deck slab is designed per IRC~112:2020 (flexure, shear, crack width) and IRC~22:2014 (composite construction). Wheel loads are distributed using Pigeaud's method. The deck is checked for flexure in the transverse and longitudinal directions, punching shear, one-way (beam) shear, crack width, and reinforcement detailing.
 
 \vspace{1em}
 \begin{longtable}{\TypicalSectionDetailsColumns}

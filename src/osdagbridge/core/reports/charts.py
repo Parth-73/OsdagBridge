@@ -19,13 +19,15 @@ def number(value):
 def bar_chart(directory, name, panels, caption, threshold=False):
     if directory is None:
         return ""
-    plot = Plot(figsize=(7.2, 3.4), layout="constrained")
+    plot = Plot(figsize=(7.2, 4.0) if threshold else (7.2, 3.4), layout="constrained")
     axes = plot.subplots(1, len(panels), squeeze=False)[0]
     for axis, (unit, series) in zip(axes, panels):
         values = [number(value) for value in series.values()]
-        axis.set_xticks(range(len(values)), series.keys(), fontsize=9)
+        axis.set_xticks(range(len(values)), [label.replace(" ", "\n", 1) if threshold else label for label in series], fontsize=10)
         top = max([1.0 if threshold else 0.01] + [v for v in values if v is not None])
         axis.set_ylim(0, top * 1.25)
+        if not any(value is not None for value in values):
+            axis.set_yticks([])
         axis.set_ylabel(unit)
         axis.grid(axis="y", alpha=0.2)
         axis.set_axisbelow(True)
