@@ -31,6 +31,35 @@ def resolve_girder_value(source: dict, base_key: str, i: int = 0) -> Any:
     raise KeyError(base_key)
 
 
+def diaphragm_tonnage(inputs, outputs):
+    """Sum section mass per metre times member length at both supports."""
+    try:
+        count = int(inputs[KEY_TS_NO_OF_GIRDERS])
+        spacing = float(inputs[KEY_TS_GIRDER_SPACING])
+        lengths = outputs.get("end_diaphragm_forces_dict", {}).get("lengths", {})
+        total_kg = 0.0
+        for i in range(1, count):
+            pair = f"G{i}G{i + 1}"
+            config = f"member_properties.end_diaphragm_details.{pair}"
+            section = "transverse_member_design.ed.section_properties"
+            kind = outputs[f"{config}.type"]
+            if kind == "Cross Bracing":
+                length = lengths[f"G{i}-G{i + 1}"]["diagonal"]
+                members = [("end_diaphragm", 2 * length)]
+                for chord in ("top_chord", "bottom_chord"):
+                    if outputs[f"{config}.{chord}"]:
+                        members.append((chord, spacing))
+            elif kind in {"Rolled Beam", "Welded Beam"}:
+                members = [("end_diaphragm", spacing)]
+            else:
+                return None
+            for member, length in members:
+                total_kg += 2 * length * float(outputs[f"{section}.{member}.{pair}.M"])
+        return total_kg / 1000 if count > 1 else None
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
     """Calculate quantities (steel tonnage, concrete volume, rebar, studs)
     needed for the material take-off summary (Chapter 7).
@@ -363,4 +392,7 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
     except Exception as exc:
         logger.warning(f"Error calculating material quantities: {exc}")
 
+    diaphragm_mass = diaphragm_tonnage(inputs, outputs)
+    if diaphragm_mass is not None:
+        quantities["end_diaphragm_wt_total"] = f"{diaphragm_mass:.3f}"
     return quantities

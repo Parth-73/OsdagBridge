@@ -1,28 +1,24 @@
 from osdagbridge.core.utils.common import (
     KEY_MP_GD_MEMBER_ID,
     KEY_MP_GD_SELECT_GIRDER,
-    KEY_MP_GIRDER_DEPTH,
+    KEY_CARRIAGEWAY_WIDTH,
+    KEY_WC_LD_LANE_TABLE_COUNT,
     KEY_TS_NO_OF_GIRDERS
 )
 
 
 def _tex(value):
     """Escape a Python value for safe LaTeX embedding."""
-    s = str(value) if value is not None else ''
-    if not s:
-        return r''
-    # Normalise non-ASCII glyphs from section designations (e.g. "∠ 100 ⅹ 100ⅹ 10")
-    # that pdflatex cannot render.
-    for uni, ascii_ in [('∠', 'L'), ('ⅹ', 'x'), ('×', 'x')]:
-        s = s.replace(uni, ascii_)
-    s = s.replace('\\', r'\textbackslash{}')
-    for ch, esc in [('&', r'\&'), ('%', r'\%'), ('$', r'\$'), ('#', r'\#'),
-                    ('{', r'\{'), ('}', r'\}'),          
-                    ('_', r'\_\allowbreak{}'),            
-                    ('~', r'\textasciitilde{}'), ('^', r'\^{}')]:
-        s = s.replace(ch, esc)
-    s = s.replace(':', r':\allowbreak{}')
-    return s
+    if value is None:
+        return ""
+    escapes = {
+        "\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "$": r"\$",
+        "#": r"\#", "{": r"\{", "}": r"\}", "_": r"\_\allowbreak{}",
+        "~": r"\textasciitilde{}", "^": r"\textasciicircum{}", ":": r":\allowbreak{}",
+        '≤': r"\ensuremath{\leq}", '≥': r"\ensuremath{\geq}", 'Δ': r"\ensuremath{\Delta}",
+        'ϕ': r"\ensuremath{\phi}", '∠': "L", 'ⅹ': "x", '×': r"\ensuremath{\times}",
+    }
+    return "".join(escapes.get(c, c) for c in str(value))
 
 
 def _render_value(source_dict, key, unit=""):
@@ -84,13 +80,8 @@ def _fig_or_placeholder(path, caption, width=r'0.9\textwidth'):
                 r'\includegraphics[width=' + width + ']{' + p + '}\n'
                 r'\caption*{' + caption + '}\n'
                 r'\end{figure}')
-    return (r'\begin{figure}[H]' + '\n'
-            r'\centering' + '\n'
-            r'\fbox{\parbox{0.97\textwidth}{' + '\n'
-            r'\textit{[ PLACEHOLDER: ' + caption + r' ]}' + '\n'
-            r'}}' + '\n'
-            r'\caption*{' + caption + '}\n'
-            r'\end{figure}')
+    return ""
+
 
 def _fig_embed(path, caption, width=r'\textwidth', height=None):
     """Embed a real figure when path is provided (already copied); otherwise use an fbox placeholder."""
@@ -107,9 +98,16 @@ def _fig_embed(path, caption, width=r'\textwidth', height=None):
                 r'\caption*{\small ' + caption + '}\n'
                 r'\vspace{-0.5em}' + '\n'
                 r'\end{figure}')
-    # fbox placeholder — matches template exactly
-    return (r'\noindent\fbox{\parbox{0.97\textwidth}{' + '\n'
-            r'\textit{[ PLACEHOLDER: ' + caption + r' ]}' + '\n'
-            r'}}')
+    return ""
 
 
+def design_lane_count(inputs):
+    from osdagbridge.core.utils.codes.irc6_2017 import IRC6_2017
+    try:
+        count = int(inputs.get(KEY_WC_LD_LANE_TABLE_COUNT) or 0)
+        if count > 0:
+            return count
+        width = float(inputs.get(KEY_CARRIAGEWAY_WIDTH))
+        return IRC6_2017.table_6(width) if width > 0 else None
+    except (TypeError, ValueError):
+        return None

@@ -435,3 +435,22 @@ def post_process(data: dict) -> dict:
     attach_crossbracings(data, cb_raw_ids, members_dict, node_coords)
 
     return {k: data[k] for k in OUTPUT_KEYS if k in data}
+
+
+def member_summary(result: dict) -> dict:
+    if not result:
+        return {}
+    def _first(*keys):
+        for k in keys:
+            v = result.get(k)
+            if v is not None:
+                return v
+        return None
+
+    return {
+        "section":     _first("section_size.designation", "Optimum.Designation"),
+        "capacity_kN": _first("Member.tension_capacity",  "Design.Strength"),
+        "efficiency":  _first("Member.efficiency",        "Optimum.UR"),
+        "slenderness": result.get("Member.Slenderness"),
+        "connection":  "Welded" if "Weld.Type" in result else "Bolted",
+    }

@@ -39,7 +39,7 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
             + _tex(bm_d.get('sf_girder', '---')) + r" & "
             + _fmt(bm_d.get('sf_location'))      + r" & "
             + _fmt(rxn_d.get('left_kN'))         + r" & "
-            + _fmt(rxn_d.get('right_kN'))        + r" \\[6pt]"
+            + _fmt(rxn_d.get('right_kN'))        + r" \\[\reportrowgap]"
         )
 
     all_lcs = list(lc_summary.keys()) + [k for k in rxn_summary if k not in lc_summary]
@@ -47,7 +47,12 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
     merged_body = ("\n\\hline\n").join(
         _merged_row(lc, lc_summary.get(lc), rxn_summary.get(lc))
         for lc in all_lcs
-    ) if all_lcs else r"--- & --- & --- & --- & --- & --- & --- & --- & --- \\[6pt]"
+    ) if all_lcs else r"--- & --- & --- & --- & --- & --- & --- & --- & --- \\[\reportrowgap]"
+
+    reaction_rows = "\n".join(
+        " & ".join((_tex(lc), _fmt(values.get("left_kN")), _fmt(values.get("right_kN"))))
+        + r" \\\hline" for lc, values in rxn_summary.items()
+    ) or r"\multicolumn{3}{c}{Support reactions unavailable} \\\hline"
 
     _span_m         = float(bridge.input_dict.get(KEY_SPAN, 0) or 0)
     _allow_live_mm  = _span_m * 1000.0 / 800.0
@@ -83,19 +88,8 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \vspace{1em}
 \begingroup
 \footnotesize
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.25}
 
-\begin{longtable}{|
->{\centering\arraybackslash}p{3.1cm}|
->{\centering\arraybackslash}p{1.7cm}|
->{\centering\arraybackslash}p{1.2cm}|
->{\centering\arraybackslash}p{1.3cm}|
->{\centering\arraybackslash}p{1.7cm}|
->{\centering\arraybackslash}p{1.2cm}|
->{\centering\arraybackslash}p{1.3cm}|
->{\centering\arraybackslash}p{1.6cm}|
->{\centering\arraybackslash}p{1.6cm}|}
+\begin{longtable}{\AnalysisDemandColumns}
 
 \caption{\textbf{Summary of Maximum Demands}}\\
 \hline
@@ -141,36 +135,27 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \endgroup
 
 \vspace{1em}
-\begin{longtable}{|>{\centering\arraybackslash}p{5.2cm}|>{\centering\arraybackslash}p{5.2cm}|>{\centering\arraybackslash}p{5.2cm}|}
-\caption{\textbf{Reactions at Supports}}
-\hline
-\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)} \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
+\begin{longtable}{\ReactionsAtSupportsColumns}
+\caption{\textbf{Reactions at Supports}}\\
+\reporthead{\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)}}
+""" + reaction_rows + r"""
 \end{longtable}
 
 \vspace{1em}
-\begin{longtable}{|L{7cm}|p{8.5cm}|}
-\caption{\textbf{Deflection Summary (Live Load \& Total Load)}}
+\begin{longtable}{\DeflectionSummaryLiveLoadTotalColumns}
+\caption{\textbf{Deflection Summary (Live Load \& Total Load)}}\\
+\reporthead{\textbf{parameter} & \textbf{value}}
+\textnormal{Deflection due to Live Load, $\delta_{LL}$} & """ + _live_str + r""" \\[\reportrowgap]
 \hline
-\textbf{parameter} & \textbf{value} \\
+\textnormal{Allowable Live Load Deflection ($\Delta_{allow}$)} & """ + _allow_live_str + r""" \\[\reportrowgap]
 \hline
-\textnormal{Deflection due to Live Load, $\delta_{LL}$} & """ + _live_str + r""" \\[6pt]
+\textnormal{Live Load Deflection Check Status} & """ + _live_status + r""" \\[\reportrowgap]
 \hline
-\textnormal{Allowable Live Load Deflection ($\Delta_{allow}$)} & """ + _allow_live_str + r""" \\[6pt]
+\textnormal{Deflection due to Total Load, $\delta_{total}$} & """ + _total_str + r""" \\[\reportrowgap]
 \hline
-\textnormal{Live Load Deflection Check Status} & """ + _live_status + r""" \\[6pt]
+\textnormal{Allowable Total Deflection ($\Delta_{allow}$)} & """ + _allow_total_str + r""" \\[\reportrowgap]
 \hline
-\textnormal{Deflection due to Total Load, $\delta_{total}$} & """ + _total_str + r""" \\[6pt]
-\hline
-\textnormal{Allowable Total Deflection ($\Delta_{allow}$)} & """ + _allow_total_str + r""" \\[6pt]
-\hline
-\textnormal{Total Load Deflection Check Status} & """ + _total_status + r""" \\[6pt]
+\textnormal{Total Load Deflection Check Status} & """ + _total_status + r""" \\[\reportrowgap]
 \hline
 \end{longtable}
 

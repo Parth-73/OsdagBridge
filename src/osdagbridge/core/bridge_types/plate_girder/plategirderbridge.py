@@ -2669,7 +2669,7 @@ class PlateGirderBridge:
         s = float(self.input_dict[KEY_TS_GIRDER_SPACING])
 
         # 5. Process design results and queries
-        forces_dict = {"pairs": {}}
+        forces_dict = {"pairs": {}, "lengths": {}}
         pair_designs = {}
         for pair in pairs:
             pair_designs[pair] = {}
@@ -2703,6 +2703,8 @@ class PlateGirderBridge:
                 horiz_proj = s if bracing_type in ("X", "X-Bracing") else s / 2.0
                 L_d = math.sqrt(horiz_proj ** 2 + h ** 2)
                 cos_alpha = math.cos(math.atan2(h, horiz_proj))
+
+                forces_dict["lengths"][pair] = {"diagonal": L_d, "chord": s}
 
                 # Collect envelope forces over both ends and all load cases
                 elements = pair_to_elements.get(pair, [])

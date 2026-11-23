@@ -16,7 +16,7 @@ from pathlib import Path
 
 import openseespy.opensees as ops
 
-from .results_data_post_processing import post_process, FORCE_KEEP, DISP_KEEP
+from .results_data_post_processing import post_process, FORCE_KEEP, DISP_KEEP, member_summary as _extract_osdag_summary
 
 
 class LazyLoadcaseResults(Mapping):
@@ -618,25 +618,6 @@ def _dump_crossbracing(data: dict) -> None:
     print("=" * 60)
     print(f"[crossbracing] saved → {out_path.resolve()}")
     print("=" * 60)
-
-
-def _extract_osdag_summary(result: dict) -> dict:
-    if not result:
-        return {}
-    def _first(*keys):
-        for k in keys:
-            v = result.get(k)
-            if v is not None:
-                return v
-        return None
-
-    return {
-        "section":     _first("section_size.designation", "Optimum.Designation"),
-        "capacity_kN": _first("Member.tension_capacity",  "Design.Strength"),
-        "efficiency":  _first("Member.efficiency",        "Optimum.UR"),
-        "slenderness": result.get("Member.Slenderness"),
-        "connection":  "Welded" if "Weld.Type" in result else "Bolted",
-    }
 
 
 def enrich_crossbracing_dump(pair_designs: dict) -> None:

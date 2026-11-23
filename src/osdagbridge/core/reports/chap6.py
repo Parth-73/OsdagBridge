@@ -21,6 +21,13 @@ def ch6_drawings(fig_paths):
       6.14 End Diaphragm -- Bottom Chord Section
     """
 
+    if not any(fig_paths.get(key) for key in (
+        "final_geometry", "cross_section", "girder_top", "girder_3d", "section_preview",
+        "stiffener_preview", "cb_diagram", "cb_bracing", "cb_top_chord", "cb_bottom_chord",
+        "ed_diagram", "ed_bracing", "ed_top_chord", "ed_bottom_chord",
+    )):
+        return r"\chapter{Drawings and Visualizations}No CAD views were supplied for this run."
+
     def _sec_fig(path, title, label=None):
         """Figure block: image first, numbered below. Placeholder if no path."""
         label_tex = (r'\label{' + label + '}\n') if label else ''
@@ -34,14 +41,7 @@ def ch6_drawings(fig_paths):
                     + label_tex
                     + r'\end{figure}' + '\n'
                     )
-        return (r'\begin{figure}[H]' + '\n'
-                r'\centering' + '\n'
-                r'\fbox{\parbox{0.97\textwidth}{' + '\n'
-                r'\textit{[ PLACEHOLDER: ' + ' ' + title + r' ]}' + '\n'
-                r'}}' + '\n'
-                r'\caption{' + title + '}\n'
-                + label_tex
-                + r'\end{figure}' + '\n')
+        return ""
 
     sup3d  = _sec_fig(fig_paths.get('final_geometry'),   'Overall 3D Bridge Superstructure',   'fig:bridge-3d')
     cs     = _sec_fig(fig_paths.get('cross_section'),     'Typical Cross Section',              'fig:cross-section')
@@ -58,7 +58,7 @@ def ch6_drawings(fig_paths):
             p = path.replace('\\', '/')
             body = r'\includegraphics[width=\linewidth]{' + p + '}'
         else:
-            body = r'\fbox{\parbox{0.95\linewidth}{\centering\textit{[ ' + title + r' ]}}}'
+            return ''
         return (r'\begin{minipage}[t]{0.31\textwidth}' + '\n'
                 r'\centering' + '\n'
                 + body + '\n'

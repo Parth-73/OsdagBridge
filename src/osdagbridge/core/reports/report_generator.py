@@ -147,139 +147,8 @@ logger = logging.getLogger(__name__)
 # PREAMBLE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def preamble(project_name, job_number, report_date, report_version='Rev 0'):
-    pn = _tex(project_name)
-    jn = _tex(job_number)
-    rd = _tex(report_date)
-    rv = _tex(report_version)
-    return r"""
-\documentclass[12pt,a4paper]{report}
+from .styles import preamble
 
-% Packages
-\usepackage[a4paper, margin=1in]{geometry}
-\usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{booktabs}
-\usepackage{array}
-\usepackage{tabularx}
-\usepackage{float}
-\usepackage{fancyhdr}
-\usepackage[hidelinks]{hyperref}
-\usepackage{xcolor}
-\usepackage{setspace}
-\usepackage{enumitem}
-\usepackage{caption}
-
-\captionsetup{
-    labelfont=bf,
-    justification=raggedright,
-    singlelinecheck=false,
-    format=plain
-}
-\usepackage{subcaption}
-\usepackage{multirow}
-\usepackage{colortbl}
-\usepackage{longtable}
-\setlength{\LTleft}{\fill}
-\setlength{\LTright}{\fill}
-\usepackage{titlesec}
-\usepackage{titletoc}
-\usepackage{lastpage}
-\usepackage{makecell}
-\usepackage{etoolbox}
-\usepackage{needspace}
-
-\numberwithin{table}{chapter}
-\numberwithin{figure}{chapter}
-% Table layout and spacing: consistent padding, row height, and longtable pre/post skips
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.12}
-\setlength{\LTpre}{0pt}
-\setlength{\LTpost}{6pt}
-% Table rules (outline thickness) and small extra row height for clarity
-\setlength{\arrayrulewidth}{0.5pt}
-\setlength{\extrarowheight}{0.6pt}
-
-% Prevent tables from overflowing past the page bottom:
-% if fewer than 5 baseline-skips remain, break to the next page first.
-\BeforeBeginEnvironment{table}{\needspace{5\baselineskip}}
-\BeforeBeginEnvironment{longtable}{\needspace{5\baselineskip}}
-
-\definecolor{osdagGreen}{HTML}{91B014}
-
-\fancypagestyle{main}{
-  \fancyhf{}
-  \fancyhead[L]{""" + pn + r""" $|$ """ + jn + r"""}
-  \fancyhead[R]{""" + rd + r""" $|$ """ + rv + r"""}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
-  \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\headrule}{\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{2pt}}
-  \renewcommand{\footrule}{%
-    \ifbool{hasSDonPage}{%
-      \vspace{-20pt}%
-      \hbox to \headwidth{\textcolor{black}{\footnotesize\textit{* Software default value}}\hfil}%
-      \vspace{4pt}%
-    }{%
-      \vspace{-8pt}%
-    }%
-    \color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}%
-  }
-}
-\fancypagestyle{plain}{
-  \fancyhf{}
-  \fancyhead[L]{""" + pn + r""" $|$ """ + jn + r"""}
-  \fancyhead[R]{""" + rd + r""" $|$ """ + rv + r"""}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
-  \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\headrule}{\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{2pt}}
-  \renewcommand{\footrule}{%
-    \ifbool{hasSDonPage}{%
-      \vspace{-20pt}%
-      \hbox to \headwidth{\textcolor{black}{\footnotesize\textit{* Software default value}}\hfil}%
-      \vspace{4pt}%
-    }{%
-      \vspace{-8pt}%
-    }%
-    \color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}%
-  }
-}
-\fancypagestyle{firstpage}{
-  \fancyhf{}
-  \renewcommand{\headrulewidth}{0pt}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
-  \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\footrule}{\vspace{-8pt}\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}}
-}
-\pagestyle{main}
-\setstretch{1.15}
-
-% Custom Commands
-\newcommand{\placeholder}[1]{\textit{\textless #1\textgreater}}
-\newcommand{\todo}[1]{\colorbox{yellow}{TODO: #1}}
-\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
-\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
-
-% Software-default asterisk
-\newcommand{\sdstar}{\textsuperscript{*}}
-\newbool{hasSDonPage}
-\boolfalse{hasSDonPage}
-\newcommand{\markSD}{\global\booltrue{hasSDonPage}}
-\renewcommand{\sdstar}{\textsuperscript{*}\markSD{}}
-\AddToHook{shipout/before}{\global\boolfalse{hasSDonPage}}
-
-\title{\Large\textbf{OsdagBridge} \\ \normalsize Open Source Software for Steel Girder Bridge Design \\ \vspace{2cm} \large Design Report}
-\author{}
-\date{}
-
-\begin{document}
-"""
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TITLE PAGE
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def title_page(m, osdag_logo, org_logo):
     if osdag_logo:
@@ -314,7 +183,7 @@ def title_page(m, osdag_logo, org_logo):
 {\Huge \textbf{OsdagBridge}}\\[0.3cm]
 {\large Open Source Software for Steel Girder Bridge Design}\\[1.5cm]
 {\Large Design Report}\\[1.5cm]
-\begin{tabular}{|L{4cm}|L{10cm}|}
+\begin{tabular}{\ReportGeneratorColumns}
 \hline
 \textbf{Project Name} & """ + _tex(m.project_name) + r""" \\
 \hline
@@ -454,7 +323,8 @@ class ReportDataBridge:
 
 
 
-    def __init__(self, output_dict: dict, input_dict: dict, payload: "ReportPayload"):
+    def __init__(self, output_dict: dict, input_dict: dict, payload: "ReportPayload", diaphragm=False):
+        self.diaphragm = diaphragm
         self.output_dict = output_dict
         self.input_dict = input_dict
         self.payload = payload
@@ -464,13 +334,23 @@ class ReportDataBridge:
     # CHAPTER 5: CROSS BRACING
     # =====================================================================
 
+    def for_diaphragms(self):
+        return ReportDataBridge(self.output_dict, self.input_dict, self.payload, diaphragm=True)
+
+    def chord_enabled(self, pair, chord):
+        if self.diaphragm:
+            key = f"member_properties.end_diaphragm_details.{pair.replace('-', '')}.{chord}"
+        else:
+            key = f"member_properties.cross_bracing_details.{chord}"
+        return str(self.output_dict.get(key, True)).lower() not in {"no", "false", "0"}
+
     def _cb_forces_dict(self) -> dict:
         """Internal: return crossbracing_forces_dict from output_dict."""
-        return self.output_dict.get("crossbracing_forces_dict", {})
+        return self.output_dict.get("end_diaphragm_forces_dict" if self.diaphragm else "crossbracing_forces_dict", {})
 
     def _cb_pair_designs(self) -> dict:
         """Internal: return crossbracing_design_results from output_dict."""
-        return self.output_dict.get("crossbracing_design_results", {})
+        return self.output_dict.get("end_diaphragm_design_results" if self.diaphragm else "crossbracing_design_results", {})
 
     def _cb_osdag(self, pair: str, member: str, force_type: str) -> dict:
         """
@@ -479,10 +359,10 @@ class ReportDataBridge:
         member    "diagonal" or "chord"
         force_type "tension" or "compression"
         """
-        from osdagbridge.core.bridge_types.plate_girder.results_data import _extract_osdag_summary
+        from osdagbridge.core.bridge_types.plate_girder.results_data_post_processing import member_summary
         try:
             raw = self._cb_pair_designs()[pair][member][force_type]
-            return _extract_osdag_summary(raw or {})
+            return member_summary(raw or {})
         except (KeyError, TypeError):
             return {}
 
@@ -544,23 +424,16 @@ class ReportDataBridge:
         Return (force_kN_str, force_type) for the governing (max absolute) force.
         Used as the single demand value for capacity tables.
         """
-        try:
-            pairs = self._cb_forces_dict()["pairs"][pair]
-            t_key = "diag_tension_kN"     if member == "diagonal" else "chord_tension_kN"
-            c_key = "diag_compression_kN" if member == "diagonal" else "chord_compression_kN"
-            t_val = pairs.get(t_key)
-            c_val = pairs.get(c_key)
-            if t_val is not None and c_val is not None:
-                if abs(c_val) >= abs(t_val):
-                    return (f"{c_val:.3f}", "compression")
-                return (f"{t_val:.3f}", "tension")
-            if c_val is not None:
-                return (f"{c_val:.3f}", "compression")
-            if t_val is not None:
-                return (f"{t_val:.3f}", "tension")
-        except (KeyError, TypeError):
-            pass
-        return ("", "compression")
+        candidates = []
+        for kind in ("compression", "tension"):
+            force = self.get_cb_force(pair, member, kind)
+            if force:
+                ratio = self.get_cb_efficiency(pair, member, kind)
+                candidates.append((float(ratio) if ratio else -1, abs(float(force)), force, kind))
+        if not candidates:
+            return "", "compression"
+        _, _, force, kind = max(candidates)
+        return force, kind
 
     def get_cb_section(self, pair: str, member: str, force_type: str) -> str:
         """Section designation for a member e.g. '75 x 75 x 8'."""
@@ -574,13 +447,13 @@ class ReportDataBridge:
 
     def get_cb_efficiency(self, pair: str, member: str, force_type: str) -> str:
         """Utilization ratio (efficiency)."""
-        val = self._cb_osdag(pair, member, force_type).get("efficiency")
-        return f"{float(val):.3f}" if val is not None else ""
+        value = self._cb_osdag(pair, member, force_type).get("efficiency")
+        return f"{float(value):.3f}" if value is not None else ""
 
-    def get_cb_slenderness(self, pair: str, member: str) -> str:
+    def get_cb_slenderness(self, pair: str, member: str, nature=None) -> str:
         """KL/r — same for tension and compression (geometry-based)."""
         # Prefer compression result (slenderness is more meaningful there)
-        for ft in ("compression", "tension"):
+        for ft in ((nature,) if nature else ("compression", "tension")):
             val = self._cb_osdag(pair, member, ft).get("slenderness")
             if val is not None:
                 return f"{float(val):.1f}"
@@ -614,9 +487,12 @@ class ReportDataBridge:
         val = self._cb_osdag(pair, member, force_type).get("connection")
         return str(val) if val else ""
 
-    def get_cb_effective_length(self, member: str) -> str:
+    def get_cb_effective_length(self, member: str, pair=None) -> str:
         """Effective length KL in mm from geometry."""
         try:
+            if self.diaphragm:
+                length = self._cb_forces_dict().get("lengths", {}).get(pair, {}).get(member)
+                return "" if length is None else f"{length * 1000:.0f}"
             geom = self.get_cb_geometry()
             if member == "diagonal":
                 L_m = geom.get("diagonal_length_m", 0)
@@ -874,7 +750,7 @@ def generate_report(payload, request):
                     with open(p, 'wb') as fh:
                         fh.write(img_bytes)
                     fig_paths[attr] = p.replace('\\', '/')
-            payload.figure_data.clear()  # bytes no longer needed — free RAM now
+
 
             # ── Write title-page logos into tmp_dir/assets (auto-deleted) ──
             # Nothing is left next to the PDF. Latex paths are relative to tmp_dir.
@@ -897,7 +773,7 @@ def generate_report(payload, request):
 
             # Compute and inject quantities for Chapter 7
             quantities = calculate_material_quantities(payload.inputs, payload.output_dict)
-            payload.inputs.update(quantities)
+
 
             # ── Assemble LaTeX document (fig_paths now has tmp_dir paths) ──
             bridge = ReportDataBridge(payload.output_dict, payload.inputs, payload)
@@ -924,15 +800,11 @@ def generate_report(payload, request):
             if 'analysis' in secs:
                 doc_parts.append(ch4_analysis(payload.analysis_summary, fig_paths, bridge, span_m))
             if 'design_checks' in secs:
-                doc_parts.append(ch5_design_checks(payload.design_checks, bridge))
+                doc_parts.append(ch5_design_checks(payload.design_checks, bridge, tmp_images if payload.options.include_figures else None))
             if 'drawings' in secs and payload.options.include_figures:
                 doc_parts.append(ch6_drawings(fig_paths))
 
-            doc_parts.append(ch7_quantities(payload.inputs))
-
-            mode = str(payload.inputs.get(KEY_DESIGN_MODE, "Optimized")).strip().lower()
-            is_custom = mode in {"custom", "customized"}
-        
+            doc_parts.append(ch7_quantities({**payload.inputs, **quantities}, tmp_images if payload.options.include_figures else None))
 
             doc_parts.append(ch8_design_log(payload.log_entries, payload.inputs))
 
@@ -967,23 +839,28 @@ def generate_report(payload, request):
                         kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
                     
                     res = subprocess.run(
-                        [compiler, '-interaction=nonstopmode', request.file_stem + '.tex'],
+                        [compiler, '-interaction=nonstopmode', '-halt-on-error', request.file_stem + '.tex'],
                         **kwargs
                     )
-                except Exception as exc:
-                    logger.warning(f"pdflatex run failed: {exc}")
+                    if res.returncode:
+                        break
+                except OSError as exc:
+                    logger.error("Could not execute PDF compiler: %s", exc)
+                    res = None
+                    break
 
             if os.path.exists(tmp_tex):
                 shutil.copy2(tmp_tex, tex_path)
-            if os.path.exists(tmp_pdf):
+            compiled = os.path.exists(tmp_pdf) and res is not None and res.returncode == 0
+            if compiled:
                 shutil.copy2(tmp_pdf, pdf_path)
 
-        if os.path.exists(pdf_path):
+        if compiled:
             logger.info("Report generated: %s", pdf_path)
             return ReportResult(pdf_path=pdf_path, tex_path=tex_path)
 
         logger.error("pdflatex ran but no PDF was produced.")
-        if 'res' in locals():
+        if res is not None:
             logger.error("pdflatex STDOUT:\n%s", res.stdout.decode('utf-8', 'ignore'))
             logger.error("pdflatex STDERR:\n%s", res.stderr.decode('utf-8', 'ignore'))
         return ReportResult(pdf_path=None, tex_path=tex_path)
